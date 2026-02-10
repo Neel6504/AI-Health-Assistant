@@ -29,12 +29,12 @@ cd Online-Health-AI-Assistant-with-Emergency-Support
 
 ### 2. Install dependencies
 ```bash
-cd frontend
+cd User
 npm install
 ```
 
 ### 3. Configure environment variables
-Create a `.env` file in the `frontend` directory:
+Create a `.env` file in the `User` directory:
 ```env
 VITE_GROQ_API_KEY=your_groq_api_key_here
 ```

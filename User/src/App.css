@@ -4,17 +4,21 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 #root {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -22,8 +26,7 @@ body {
 .app-container {
   position: relative;
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
 .canvas-background {
@@ -41,7 +44,7 @@ body {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -419,6 +422,76 @@ body {
   transform: none;
 }
 
+/* Nearby Hospitals Button */
+.nearby-hospitals-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: calc(100% - 4rem);
+  margin: 1rem 2rem 0;
+  padding: 1.25rem 2rem;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  border-radius: 16px;
+  color: white;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+  pointer-events: auto;
+  animation: fadeInUp 0.5s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.nearby-hospitals-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.nearby-hospitals-button:hover::before {
+  left: 100%;
+}
+
+.nearby-hospitals-button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.6);
+}
+
+.nearby-hospitals-button:active {
+  transform: translateY(-2px);
+}
+
+.nearby-hospitals-button svg {
+  width: 24px;
+  height: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .chat-container {
@@ -445,6 +518,18 @@ body {
   
   .send-button {
     padding: 1rem 1.5rem;
+  }
+  
+  .nearby-hospitals-button {
+    width: calc(100% - 2rem);
+    margin: 1rem 1rem 0;
+    padding: 1rem 1.5rem;
+    font-size: 0.95rem;
+  }
+  
+  .nearby-hospitals-button svg {
+    width: 20px;
+    height: 20px;
   }
 }
 

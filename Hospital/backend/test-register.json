@@ -1,0 +1,19 @@
+{
+  "hospitalName": "Test City Hospital",
+  "registrationNumber": "TEST12345",
+  "email": "test@cityhospital.com",
+  "phone": "9876543210",
+  "address": "123 Main Street",
+  "city": "Mumbai",
+  "state": "Maharashtra",
+  "pincode": "400001",
+  "establishedYear": 2020,
+  "hospitalType": "Private",
+  "totalBeds": 100,
+  "specializations": "Cardiology, Neurology",
+  "emergencyAvailable": true,
+  "ambulanceAvailable": true,
+  "adminName": "Dr. John Doe",
+  "adminPosition": "Director",
+  "password": "testpass123"
+}

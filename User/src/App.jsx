@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, Suspense } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Groq from 'groq-sdk'
 import ReactMarkdown from 'react-markdown'
 import { Canvas, useFrame } from '@react-three/fiber'
@@ -264,6 +265,7 @@ function Scene3D() {
 }
 
 function App() {
+  const navigate = useNavigate()
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -272,11 +274,8 @@ function App() {
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [showHospitals, setShowHospitals] = useState(false)
-  const [hospitals, setHospitals] = useState([])
-  const [userLocation, setUserLocation] = useState(null)
-  const [locationError, setLocationError] = useState(null)
   const messagesEndRef = useRef(null)
+  const inputRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -284,7 +283,11 @@ function App() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+    // Auto-focus input when new message arrives
+    if (inputRef.current && !isLoading) {
+      inputRef.current.focus()
+    }
+  }, [messages, isLoading])
 
   // Check if the message contains disease prediction (assessment)
   const isDiagnosisComplete = (content) => {
@@ -502,12 +505,9 @@ function App() {
             <div key={index}>
               {message.content === 'hospital-finder-prompt' ? (
                 <div className="hospital-finder-prompt">
-                  <button onClick={handleShowHospitals} className="find-hospitals-btn">
+                  <button onClick={() => navigate('/nearby-hospitals')} className="find-hospitals-btn">
                     🏥 Find Nearby Hospitals
                   </button>
-                  {locationError && (
-                    <p className="location-error">{locationError}</p>
-                  )}
                 </div>
               ) : (
                 <div className={`message ${message.role}`}>
@@ -522,67 +522,6 @@ function App() {
               )}
             </div>
           ))}
-          
-          {showHospitals && hospitals.length > 0 && (
-            <div className="hospitals-container">
-              <h3 className="hospitals-title">🏥 Nearby Medical Facilities</h3>
-              {userLocation && (
-                <p className="location-info">
-                  📍 Your location: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
-                </p>
-              )}
-              <div className="hospitals-list">
-                {hospitals.map((hospital, idx) => (
-                  <div key={idx} className="hospital-card">
-                    <div className="hospital-header">
-                      <h4>{hospital.name}</h4>
-                      {hospital.type !== 'Search' && (
-                        <span className="hospital-type">{hospital.type}</span>
-                      )}
-                    </div>
-                    {hospital.type === 'Search' ? (
-                      <>
-                        <p className="hospital-address">📍 {hospital.address}</p>
-                        <div className="hospital-actions">
-                          <a
-                            href={`https://www.google.com/maps/search/hospitals+near+me/@${hospital.lat},${hospital.lng},14z`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hospital-link"
-                          >
-                            🔍 Search Hospitals on Google Maps →
-                          </a>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <p className="hospital-address">📍 {hospital.address}</p>
-                        {hospital.phone !== 'N/A' && (
-                          <p className="hospital-phone">📞 {hospital.phone}</p>
-                        )}
-                        <div className="hospital-actions">
-                          <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${hospital.lat},${hospital.lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hospital-link"
-                          >
-                            Get Directions →
-                          </a>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {showHospitals && hospitals.length === 0 && (
-            <div className="no-hospitals">
-              <p>No hospitals found nearby. Please try searching manually or check your location settings.</p>
-            </div>
-          )}
           
           {isLoading && (
             <div className="message assistant">
@@ -599,12 +538,14 @@ function App() {
 
         <form onSubmit={sendMessage} className="chat-input-form">
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Describe your symptoms..."
             disabled={isLoading}
             className="chat-input"
+            autoFocus
           />
           <button
             type="submit"
