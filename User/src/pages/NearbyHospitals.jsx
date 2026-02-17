@@ -95,13 +95,13 @@ function NearbyHospitals() {
   const getDirections = (hospital) => {
     if (!hospital?.lat || !hospital?.lng) return
     if (userLocation?.lat && userLocation?.lng) {
-      const url = `https://www.openstreetmap.org/directions?from=${userLocation.lat},${userLocation.lng}&to=${hospital.lat},${hospital.lng}`
-      console.log('[NearbyHospitals] Opening OSM directions:', url)
+      const url = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${hospital.lat},${hospital.lng}`
+      console.log('[NearbyHospitals] Opening Google Maps directions:', url)
       window.open(url, '_blank')
     } else {
-      // If user location is missing, open OSM directions to the hospital only
-      const url = `https://www.openstreetmap.org/directions?to=${hospital.lat},${hospital.lng}`
-      console.log('[NearbyHospitals] Opening OSM directions (no user location):', url)
+      // If user location is missing, open Google Maps directions to the hospital only
+      const url = `https://www.google.com/maps/dir//${hospital.lat},${hospital.lng}`
+      console.log('[NearbyHospitals] Opening Google Maps directions (no user location):', url)
       window.open(url, '_blank')
     }
   }
