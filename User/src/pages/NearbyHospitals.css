@@ -614,3 +614,24 @@
     padding: 0.6rem 0.8rem;
   }
 }
+
+/* Utility classes for hospital information */
+.text-success {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.text-danger {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.details-section p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+.details-section strong {
+  color: rgba(255, 255, 255, 0.9);
+  margin-right: 0.5rem;
+}

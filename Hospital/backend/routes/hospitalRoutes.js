@@ -25,6 +25,8 @@ router.post('/register', async (req, res) => {
       city,
       state,
       pincode,
+      latitude,
+      longitude,
       establishedYear,
       hospitalType,
       totalBeds,
@@ -36,6 +38,22 @@ router.post('/register', async (req, res) => {
       adminPosition,
       password
     } = req.body;
+
+    // Validate latitude and longitude
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'Hospital location (latitude and longitude) is required. Please detect your location.'
+      });
+    }
+
+    // Validate coordinate ranges
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid coordinates. Please detect your location again.'
+      });
+    }
 
     // Check if hospital already exists
     const hospitalExists = await Hospital.findOne({
@@ -68,6 +86,8 @@ router.post('/register', async (req, res) => {
       city,
       state,
       pincode,
+      latitude,
+      longitude,
       establishedYear,
       hospitalType,
       totalBeds,
@@ -231,6 +251,112 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while fetching hospital',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/hospitals/nearby
+// @desc    Find nearby hospitals based on user's location
+// @access  Public
+router.post('/nearby', async (req, res) => {
+  try {
+    const { latitude, longitude, radius = 5 } = req.body; // radius in kilometers, default 5km
+
+    // Validate coordinates
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude and longitude are required'
+      });
+    }
+
+    // Validate coordinate ranges
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid coordinates'
+      });
+    }
+
+    // Get all hospitals from database
+    const allHospitals = await Hospital.find({}).select('-password');
+
+    // Calculate distance using Haversine formula
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+      const R = 6371; // Earth's radius in kilometers
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+      
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distance = R * c;
+      
+      return parseFloat(distance.toFixed(2));
+    };
+
+    const toRad = (value) => {
+      return (value * Math.PI) / 180;
+    };
+
+    // Calculate distances and filter by radius
+    const hospitalsWithDistance = allHospitals
+      .map(hospital => {
+        const distance = calculateDistance(
+          latitude,
+          longitude,
+          hospital.latitude,
+          hospital.longitude
+        );
+
+        return {
+          _id: hospital._id,
+          hospitalName: hospital.hospitalName,
+          address: hospital.address,
+          city: hospital.city,
+          state: hospital.state,
+          pincode: hospital.pincode,
+          phone: hospital.phone,
+          email: hospital.email,
+          hospitalType: hospital.hospitalType,
+          totalBeds: hospital.totalBeds,
+          specializations: hospital.specializations,
+          emergencyAvailable: hospital.emergencyAvailable,
+          ambulanceAvailable: hospital.ambulanceAvailable,
+          availableServices: hospital.availableServices,
+          latitude: hospital.latitude,
+          longitude: hospital.longitude,
+          distance: distance,
+          isOpen: true // You can add business hours logic later
+        };
+      })
+      .filter(hospital => hospital.distance <= radius)
+      .sort((a, b) => a.distance - b.distance); // Sort by distance (nearest first)
+
+    console.log(`Found ${hospitalsWithDistance.length} hospitals within ${radius}km`);
+
+    res.json({
+      success: true,
+      count: hospitalsWithDistance.length,
+      data: hospitalsWithDistance,
+      userLocation: {
+        latitude,
+        longitude
+      },
+      radius
+    });
+
+  } catch (error) {
+    console.error('Nearby hospitals error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while searching for nearby hospitals',
       error: error.message
     });
   }

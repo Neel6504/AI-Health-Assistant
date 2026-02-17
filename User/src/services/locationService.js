@@ -304,8 +304,71 @@ const extractFacilities = (tags) => {
 }
 
 /**
+ * Find nearby hospitals from our database
+ * This is the preferred method as it uses registered hospitals
+ */
+export const findHospitalsFromDatabase = async (location, radiusKm = 5) => {
+  try {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    
+    const response = await fetch(`${API_URL}/api/hospitals/nearby`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        latitude: location.lat,
+        longitude: location.lng,
+        radius: radiusKm
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`Database API error: ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch hospitals from database')
+    }
+
+    // Transform database format to match our UI format
+    const hospitals = result.data.map(hospital => ({
+      id: hospital._id,
+      name: hospital.hospitalName,
+      address: `${hospital.address}, ${hospital.city}, ${hospital.state} - ${hospital.pincode}`,
+      lat: hospital.latitude,
+      lng: hospital.longitude,
+      distance: hospital.distance,
+      rating: 'N/A',
+      userRatingsTotal: 0,
+      isOpen: hospital.isOpen,
+      phone: hospital.phone,
+      email: hospital.email,
+      website: null,
+      emergency: hospital.emergencyAvailable,
+      ambulance: hospital.ambulanceAvailable,
+      hospitalType: hospital.hospitalType,
+      totalBeds: hospital.totalBeds,
+      specializations: hospital.specializations,
+      availableServices: hospital.availableServices,
+      facilities: hospital.availableServices || [],
+      openingHours: null
+    }))
+
+    console.log(`Found ${hospitals.length} hospitals from database within ${radiusKm}km`)
+    return hospitals
+
+  } catch (error) {
+    console.error('Database fetch error:', error)
+    throw error
+  }
+}
+
+/**
  * Main function to find nearby hospitals
- * Uses OpenStreetMap Overpass API strictly (no Google Maps)
+ * Tries database first, falls back to OpenStreetMap if needed
  */
 export const findNearbyHospitals = async (location, googleApiKey = null) => {
   try {
@@ -313,7 +376,25 @@ export const findNearbyHospitals = async (location, googleApiKey = null) => {
       throw new Error('Invalid coordinates received from geolocation')
     }
     
-    // Use OpenStreetMap Overpass API only
+    // Try our database first (preferred method)
+    try {
+      console.log('Fetching hospitals from database (preferred method)...')
+      const hospitals = await findHospitalsFromDatabase(location, 5)
+      
+      if (hospitals && hospitals.length > 0) {
+        console.log(`Found ${hospitals.length} hospitals from database`)
+        return {
+          hospitals,
+          source: 'database'
+        }
+      } else {
+        console.log('No hospitals found in database, falling back to OpenStreetMap')
+      }
+    } catch (dbError) {
+      console.warn('Database search failed, falling back to OpenStreetMap:', dbError.message)
+    }
+    
+    // Fallback to OpenStreetMap Overpass API
     console.log('Fetching hospitals using OpenStreetMap Overpass API...')
     const hospitals = await findHospitalsWithOverpass(location)
     

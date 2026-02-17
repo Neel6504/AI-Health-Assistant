@@ -186,8 +186,18 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
       const { confirmPassword, ...hospitalData } = formData
       
       // Convert latitude and longitude to numbers
-      hospitalData.latitude = parseFloat(hospitalData.latitude)
-      hospitalData.longitude = parseFloat(hospitalData.longitude)
+      const lat = parseFloat(hospitalData.latitude)
+      const lng = parseFloat(hospitalData.longitude)
+      
+      // Validate conversion
+      if (isNaN(lat) || isNaN(lng)) {
+        alert('Invalid location coordinates. Please detect your location again.')
+        setIsLoading(false)
+        return
+      }
+      
+      hospitalData.latitude = lat
+      hospitalData.longitude = lng
       
       const response = await fetch('http://localhost:5000/api/hospitals/register', {
         method: 'POST',

@@ -145,7 +145,11 @@ function NearbyHospitals() {
           </p>
           {dataSource && (
             <small style={{ opacity: 0.7, fontSize: '0.85em' }}>
-              {dataSource === 'google_places' ? '📍 Powered by Google Places' : '🗺️ Powered by OpenStreetMap'}
+              {dataSource === 'database' 
+                ? '🏥 Showing registered hospitals from our database' 
+                : dataSource === 'google_places' 
+                ? '📍 Powered by Google Places' 
+                : '🗺️ Powered by OpenStreetMap'}
             </small>
           )}
         </div>
@@ -256,6 +260,39 @@ function NearbyHospitals() {
                 {/* Expandable Details */}
                 {selectedHospital?.id === hospital.id && (
                   <div className="hospital-details">
+                    {/* Hospital Type & Beds (if from database) */}
+                    {(hospital.hospitalType || hospital.totalBeds) && (
+                      <div className="details-section">
+                        <h4>🏥 Hospital Information</h4>
+                        {hospital.hospitalType && <p><strong>Type:</strong> {hospital.hospitalType}</p>}
+                        {hospital.totalBeds && <p><strong>Total Beds:</strong> {hospital.totalBeds}</p>}
+                        {hospital.specializations && <p><strong>Specializations:</strong> {hospital.specializations}</p>}
+                      </div>
+                    )}
+
+                    {/* Emergency Services (if from database) */}
+                    {(hospital.emergency !== undefined || hospital.ambulance !== undefined) && (
+                      <div className="details-section">
+                        <h4>🚨 Emergency Services</h4>
+                        {hospital.emergency !== undefined && (
+                          <p>
+                            <strong>Emergency Ward:</strong>{' '}
+                            <span className={hospital.emergency ? 'text-success' : 'text-danger'}>
+                              {hospital.emergency ? '✅ Available' : '❌ Not Available'}
+                            </span>
+                          </p>
+                        )}
+                        {hospital.ambulance !== undefined && (
+                          <p>
+                            <strong>Ambulance Service:</strong>{' '}
+                            <span className={hospital.ambulance ? 'text-success' : 'text-danger'}>
+                              {hospital.ambulance ? '✅ Available' : '❌ Not Available'}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {/* Opening Hours */}
                     {hospital.openingHours && (
                       <div className="details-section">
@@ -276,11 +313,14 @@ function NearbyHospitals() {
                     )}
 
                     {/* Contact Info */}
-                    {(hospital.phone !== 'N/A' || hospital.website) && (
+                    {(hospital.phone !== 'N/A' || hospital.email || hospital.website) && (
                       <div className="details-section">
                         <h4>📞 Contact Information</h4>
                         {hospital.phone !== 'N/A' && (
                           <p>Phone: <a href={`tel:${hospital.phone}`}>{hospital.phone}</a></p>
+                        )}
+                        {hospital.email && (
+                          <p>Email: <a href={`mailto:${hospital.email}`}>{hospital.email}</a></p>
                         )}
                         {hospital.website && (
                           <p>Website: <a href={hospital.website} target="_blank" rel="noopener noreferrer">Visit Website</a></p>
