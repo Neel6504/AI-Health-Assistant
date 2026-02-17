@@ -38,11 +38,13 @@ export const getUserLocation = () => {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        resolve({
+        const coords = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
           accuracy: position.coords.accuracy
-        })
+        }
+        console.log('[NearbyHospitals] Geolocation success:', coords)
+        resolve(coords)
       },
       (error) => {
         let errorMessage = 'Unable to retrieve your location.'
@@ -61,6 +63,7 @@ export const getUserLocation = () => {
             errorMessage = 'An unknown error occurred while getting location.'
         }
         
+        console.error('[NearbyHospitals] Geolocation error:', error)
         reject(new Error(errorMessage))
       },
       {
@@ -79,6 +82,7 @@ export const getUserLocation = () => {
 export const findHospitalsWithGooglePlaces = async (location, apiKey) => {
   try {
     const radius = 5000 // 5000 meters = 5 km
+    const maxDistanceKm = radius / 1000
     
     // Using Google Places API Nearby Search
     const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=${radius}&type=hospital&key=${apiKey}`
@@ -134,6 +138,7 @@ export const findHospitalsWithGooglePlaces = async (location, apiKey) => {
           types: place.types || []
         }
       })
+      .filter(place => place.distance <= maxDistanceKm)
       .sort((a, b) => a.distance - b.distance) // Sort by nearest distance
     
     return hospitals
@@ -149,7 +154,11 @@ export const findHospitalsWithGooglePlaces = async (location, apiKey) => {
  */
 export const findHospitalsWithOverpass = async (location) => {
   try {
+    if (!isValidCoordinates(location?.lat, location?.lng)) {
+      throw new Error('Invalid coordinates received from geolocation')
+    }
     const radius = 5000 // 5000 meters = 5 km
+    const maxDistanceKm = radius / 1000
     
     // Overpass API query for hospitals within radius
     const overpassQuery = `
@@ -163,6 +172,8 @@ export const findHospitalsWithOverpass = async (location) => {
     `
     
     const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
+    console.log('[NearbyHospitals] Using coordinates:', location.lat, location.lng)
+    console.log('[NearbyHospitals] Overpass request URL:', overpassUrl)
     
     const response = await fetch(overpassUrl)
     
@@ -171,6 +182,7 @@ export const findHospitalsWithOverpass = async (location) => {
     }
     
     const data = await response.json()
+    console.log('[NearbyHospitals] Overpass response elements:', Array.isArray(data?.elements) ? data.elements.length : 0)
     
     if (!data.elements || data.elements.length === 0) {
       return []
@@ -214,8 +226,10 @@ export const findHospitalsWithOverpass = async (location) => {
           openingHours: parseOpeningHours(element.tags?.opening_hours)
         }
       })
+      .filter(place => place.distance <= maxDistanceKm)
       .sort((a, b) => a.distance - b.distance) // Sort by nearest distance
     
+    console.log('[NearbyHospitals] First result distance (km):', hospitals[0]?.distance)
     return hospitals
     
   } catch (error) {
@@ -291,29 +305,15 @@ const extractFacilities = (tags) => {
 
 /**
  * Main function to find nearby hospitals
- * Tries Google Places API first, falls back to OpenStreetMap
+ * Uses OpenStreetMap Overpass API strictly (no Google Maps)
  */
 export const findNearbyHospitals = async (location, googleApiKey = null) => {
   try {
-    // Try Google Places API first if API key is provided
-    if (googleApiKey) {
-      try {
-        console.log('Attempting to fetch hospitals using Google Places API...')
-        const hospitals = await findHospitalsWithGooglePlaces(location, googleApiKey)
-        
-        if (hospitals && hospitals.length > 0) {
-          console.log(`Found ${hospitals.length} hospitals using Google Places API`)
-          return {
-            hospitals,
-            source: 'google_places'
-          }
-        }
-      } catch (error) {
-        console.warn('Google Places API failed, falling back to OpenStreetMap:', error.message)
-      }
+    if (!isValidCoordinates(location?.lat, location?.lng)) {
+      throw new Error('Invalid coordinates received from geolocation')
     }
     
-    // Fallback to OpenStreetMap Overpass API
+    // Use OpenStreetMap Overpass API only
     console.log('Fetching hospitals using OpenStreetMap Overpass API...')
     const hospitals = await findHospitalsWithOverpass(location)
     
@@ -335,4 +335,13 @@ export const findNearbyHospitals = async (location, googleApiKey = null) => {
     console.error('Error finding nearby hospitals:', error)
     throw error
   }
+}
+
+// Validate coordinates to ensure they are real numbers and in bounds
+const isValidCoordinates = (lat, lng) => {
+  const isFiniteNumber = (n) => typeof n === 'number' && Number.isFinite(n)
+  if (!isFiniteNumber(lat) || !isFiniteNumber(lng)) return false
+  if (lat < -90 || lat > 90) return false
+  if (lng < -180 || lng > 180) return false
+  return true
 }
