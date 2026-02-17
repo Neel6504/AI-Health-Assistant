@@ -61,6 +61,16 @@ const hospitalSchema = new mongoose.Schema({
     match: [/^\d{6}$/, 'Please enter a valid 6-digit pincode']
   },
   
+  // GPS Coordinates
+  latitude: {
+    type: Number,
+    required: [true, 'Latitude is required for location services']
+  },
+  longitude: {
+    type: Number,
+    required: [true, 'Longitude is required for location services']
+  },
+  
   // Hospital Details
   hospitalType: {
     type: String,
@@ -85,6 +95,19 @@ const hospitalSchema = new mongoose.Schema({
   ambulanceAvailable: {
     type: Boolean,
     default: false
+  },
+  
+  // Available Medical Services
+  availableServices: {
+    type: [String],
+    default: [],
+    validate: {
+      validator: function(services) {
+        // Optional: Add validation for valid service names
+        return Array.isArray(services);
+      },
+      message: 'Available services must be an array'
+    }
   },
   
   // Admin Information

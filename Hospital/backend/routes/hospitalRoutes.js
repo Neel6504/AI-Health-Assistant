@@ -31,6 +31,7 @@ router.post('/register', async (req, res) => {
       specializations,
       emergencyAvailable,
       ambulanceAvailable,
+      availableServices,
       adminName,
       adminPosition,
       password
@@ -73,6 +74,7 @@ router.post('/register', async (req, res) => {
       specializations,
       emergencyAvailable,
       ambulanceAvailable,
+      availableServices,
       adminName,
       adminPosition,
       password

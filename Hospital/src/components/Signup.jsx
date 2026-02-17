@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import './Auth.css'
+import MEDICAL_SERVICES from '../constants/medicalServices'
+import { getCurrentLocation } from '../services/locationService'
 
 function Signup({ onToggleAuth, onSignupSuccess }) {
+  const [currentSection, setCurrentSection] = useState('hospital-info')
   const [formData, setFormData] = useState({
     hospitalName: '',
     registrationNumber: '',
@@ -11,12 +14,15 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
     city: '',
     state: '',
     pincode: '',
+    latitude: '',
+    longitude: '',
     establishedYear: '',
     hospitalType: '',
     totalBeds: '',
     specializations: '',
     emergencyAvailable: false,
     ambulanceAvailable: false,
+    availableServices: [],
     adminName: '',
     adminPosition: '',
     password: '',
@@ -24,6 +30,16 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
   })
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false)
+
+  const sections = [
+    { id: 'hospital-info', label: 'Hospital Information', icon: '🏥' },
+    { id: 'contact', label: 'Contact Details', icon: '📞' },
+    { id: 'hospital-details', label: 'Hospital Details', icon: '🏨' },
+    { id: 'medical-services', label: 'Medical Services', icon: '⚕️' },
+    { id: 'admin', label: 'Administrator Details', icon: '👤' },
+    { id: 'security', label: 'Account Security', icon: '🔐' }
+  ]
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -38,6 +54,61 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
         [name]: ''
       }))
     }
+  }
+
+  const handleServiceToggle = (serviceId) => {
+    setFormData(prev => {
+      const services = prev.availableServices.includes(serviceId)
+        ? prev.availableServices.filter(id => id !== serviceId)
+        : [...prev.availableServices, serviceId]
+      return { ...prev, availableServices: services }
+    })
+    // Clear error if services selected
+    if (errors.availableServices) {
+      setErrors(prev => ({ ...prev, availableServices: '' }))
+    }
+  }
+
+  const handleDetectLocation = async () => {
+    setIsDetectingLocation(true)
+    try {
+      const location = await getCurrentLocation()
+      setFormData(prev => ({
+        ...prev,
+        latitude: location.latitude.toFixed(6),
+        longitude: location.longitude.toFixed(6)
+      }))
+      // Clear location errors
+      setErrors(prev => ({
+        ...prev,
+        latitude: '',
+        longitude: ''
+      }))
+      alert(`Location detected successfully!\nLatitude: ${location.latitude.toFixed(6)}\nLongitude: ${location.longitude.toFixed(6)}`)
+    } catch (error) {
+      console.error('Location detection error:', error)
+      alert(error.message)
+    } finally {
+      setIsDetectingLocation(false)
+    }
+  }
+
+  const handleSelectAllInCategory = (category) => {
+    const categoryServiceIds = category.services.map(s => s.id)
+    const allSelected = categoryServiceIds.every(id => formData.availableServices.includes(id))
+    
+    setFormData(prev => {
+      let newServices
+      if (allSelected) {
+        // Deselect all in category
+        newServices = prev.availableServices.filter(id => !categoryServiceIds.includes(id))
+      } else {
+        // Select all in category
+        const toAdd = categoryServiceIds.filter(id => !prev.availableServices.includes(id))
+        newServices = [...prev.availableServices, ...toAdd]
+      }
+      return { ...prev, availableServices: newServices }
+    })
   }
 
   const validateForm = () => {
@@ -69,6 +140,11 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
       newErrors.pincode = 'Pincode must be 6 digits'
     }
 
+    if (!formData.latitude || !formData.longitude) {
+      newErrors.latitude = 'Hospital location is required. Please detect location.'
+      newErrors.longitude = 'Hospital location is required. Please detect location.'
+    }
+
     if (!formData.establishedYear) {
       newErrors.establishedYear = 'Established year is required'
     } else if (formData.establishedYear > new Date().getFullYear()) {
@@ -78,6 +154,9 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
     if (!formData.hospitalType) newErrors.hospitalType = 'Hospital type is required'
     if (!formData.totalBeds) newErrors.totalBeds = 'Total beds is required'
     if (!formData.specializations.trim()) newErrors.specializations = 'Specializations are required'
+    if (!formData.availableServices || formData.availableServices.length === 0) {
+      newErrors.availableServices = 'Please select at least one available service'
+    }
     if (!formData.adminName.trim()) newErrors.adminName = 'Admin name is required'
     if (!formData.adminPosition.trim()) newErrors.adminPosition = 'Admin position is required'
 
@@ -105,6 +184,10 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
     try {
       // Remove confirmPassword before sending to backend
       const { confirmPassword, ...hospitalData } = formData
+      
+      // Convert latitude and longitude to numbers
+      hospitalData.latitude = parseFloat(hospitalData.latitude)
+      hospitalData.longitude = parseFloat(hospitalData.longitude)
       
       const response = await fetch('http://localhost:5000/api/hospitals/register', {
         method: 'POST',
@@ -143,18 +226,13 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
     }
   }
 
-  return (
-    <div className="auth-container">
-      <div className="auth-card signup-card">
-        <div className="auth-header">
-          <h1>🏥 Hospital Registration</h1>
-          <p>Register your hospital to manage appointments</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="auth-form signup-form">
-          {/* Hospital Basic Information */}
-          <div className="form-section">
-            <h3>Hospital Information</h3>
+  const renderSection = () => {
+    switch (currentSection) {
+      case 'hospital-info':
+        return (
+          <div className="form-section-content">
+            <h2>🏥 Hospital Information</h2>
+            <p className="section-description">Enter basic details about your hospital</p>
             
             <div className="form-group">
               <label htmlFor="hospitalName">Hospital Name *</label>
@@ -202,10 +280,13 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
               </div>
             </div>
           </div>
+        )
 
-          {/* Contact Information */}
-          <div className="form-section">
-            <h3>Contact Details</h3>
+      case 'contact':
+        return (
+          <div className="form-section-content">
+            <h2>📞 Contact Details</h2>
+            <p className="section-description">How can patients reach your hospital?</p>
             
             <div className="form-row">
               <div className="form-group">
@@ -295,11 +376,59 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
                 {errors.pincode && <span className="error-message">{errors.pincode}</span>}
               </div>
             </div>
-          </div>
 
-          {/* Hospital Details */}
-          <div className="form-section">
-            <h3>Hospital Details</h3>
+            <div className="form-group">
+              <label>Hospital Location (GPS Coordinates) *</label>
+              <button
+                type="button"
+                onClick={handleDetectLocation}
+                disabled={isDetectingLocation}
+                className="detect-location-btn"
+              >
+                {isDetectingLocation ? '📍 Detecting...' : '📍 Detect My Location'}
+              </button>
+              <p className="field-hint">Click to automatically detect hospital's GPS coordinates</p>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="latitude">Latitude *</label>
+                <input
+                  type="text"
+                  id="latitude"
+                  name="latitude"
+                  value={formData.latitude}
+                  onChange={handleChange}
+                  placeholder="19.076090"
+                  readOnly
+                  className={errors.latitude ? 'error' : ''}
+                />
+                {errors.latitude && <span className="error-message">{errors.latitude}</span>}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="longitude">Longitude *</label>
+                <input
+                  type="text"
+                  id="longitude"
+                  name="longitude"
+                  value={formData.longitude}
+                  onChange={handleChange}
+                  placeholder="72.877426"
+                  readOnly
+                  className={errors.longitude ? 'error' : ''}
+                />
+                {errors.longitude && <span className="error-message">{errors.longitude}</span>}
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'hospital-details':
+        return (
+          <div className="form-section-content">
+            <h2>🏨 Hospital Details</h2>
+            <p className="section-description">Tell us about your hospital's facilities</p>
             
             <div className="form-row">
               <div className="form-group">
@@ -374,10 +503,71 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
               </label>
             </div>
           </div>
+        )
 
-          {/* Admin Details */}
-          <div className="form-section">
-            <h3>Administrator Details</h3>
+      case 'medical-services':
+        return (
+          <div className="form-section-content">
+            <h2>⚕️ Available Medical Services</h2>
+            <p className="section-description">
+              Select all medical services and treatments available at your hospital.
+              <span className="service-count">
+                {formData.availableServices.length} service{formData.availableServices.length !== 1 ? 's' : ''} selected
+              </span>
+            </p>
+            {errors.availableServices && <span className="error-message">{errors.availableServices}</span>}
+            
+            <div className="services-grid">
+              {MEDICAL_SERVICES.map(category => {
+                const categoryServiceIds = category.services.map(s => s.id)
+                const selectedCount = categoryServiceIds.filter(id => formData.availableServices.includes(id)).length
+                const allSelected = selectedCount === categoryServiceIds.length
+                
+                return (
+                  <div key={category.category} className="service-category">
+                    <div className="category-header">
+                      <h4>
+                        <span className="category-icon">{category.icon}</span>
+                        {category.category}
+                        <span className="category-count">({selectedCount}/{categoryServiceIds.length})</span>
+                      </h4>
+                      <button
+                        type="button"
+                        className="select-all-btn"
+                        onClick={() => handleSelectAllInCategory(category)}
+                      >
+                        {allSelected ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </div>
+                    <div className="service-checkboxes">
+                      {category.services.map(service => (
+                        <label key={service.id} className="service-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={formData.availableServices.includes(service.id)}
+                            onChange={() => handleServiceToggle(service.id)}
+                          />
+                          <span className="service-name">
+                            {service.name}
+                            <span className={`severity-badge ${service.severity}`}>
+                              {service.severity}
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+
+      case 'admin':
+        return (
+          <div className="form-section-content">
+            <h2>👤 Administrator Details</h2>
+            <p className="section-description">Who will manage this hospital account?</p>
             
             <div className="form-row">
               <div className="form-group">
@@ -409,10 +599,13 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
               </div>
             </div>
           </div>
+        )
 
-          {/* Account Security */}
-          <div className="form-section">
-            <h3>Account Security</h3>
+      case 'security':
+        return (
+          <div className="form-section-content">
+            <h2>🔐 Account Security</h2>
+            <p className="section-description">Create a secure password for your account</p>
             
             <div className="form-row">
               <div className="form-group">
@@ -443,12 +636,52 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
                 {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
               </div>
             </div>
+
+            <button type="submit" className="auth-button register-btn" disabled={isLoading}>
+              {isLoading ? 'Registering...' : '✓ Register Hospital'}
+            </button>
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className="auth-container">
+      <div className="signup-card-wrapper">
+        <div className="auth-header">
+          <h1>🏥 Hospital Registration</h1>
+          <p>Complete all sections to register your hospital</p>
+        </div>
+
+        <div className="dashboard-container">
+          {/* Left Sidebar */}
+          <div className="sidebar">
+            <nav className="sidebar-nav">
+              {sections.map((section, index) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  className={`sidebar-item ${
+                    currentSection === section.id ? 'active' : ''
+                  }`}
+                  onClick={() => setCurrentSection(section.id)}
+                >
+                  <span className="sidebar-icon">{section.icon}</span>
+                  <span className="sidebar-label">{section.label}</span>
+                  <span className="sidebar-number">{index + 1}</span>
+                </button>
+              ))}
+            </nav>
           </div>
 
-          <button type="submit" className="auth-button" disabled={isLoading}>
-            {isLoading ? 'Registering...' : 'Register Hospital'}
-          </button>
-        </form>
+          {/* Main Content Area */}
+          <form onSubmit={handleSubmit} className="auth-form signup-form dashboard-content">
+            {renderSection()}
+          </form>
+        </div>
 
         <div className="auth-footer">
           <p>
@@ -464,3 +697,4 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
 }
 
 export default Signup
+
