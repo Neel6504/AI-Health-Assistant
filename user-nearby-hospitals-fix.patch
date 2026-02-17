@@ -1,0 +1,485 @@
+﻿From fb661cb1f9a81f1df3e81a6003eeaffb887d8ba3 Mon Sep 17 00:00:00 2001
+From: HitenKatariya <hitenvk22@gmail.com>
+Date: Tue, 17 Feb 2026 10:38:16 +0530
+Subject: [PATCH] Fix Nearby Hospitals: live geolocation, Google/Overpass API,
+ strict filtering, distance sorting, robust errors
+
+---
+ User/README.md                     |  10 +++
+ User/package-lock.json             |  31 +++++--
+ User/src/pages/NearbyHospitals.jsx | 134 ++++++++++++-----------------
+ User/src/services/distance.js      |  13 +++
+ User/src/services/geolocation.js   |  47 ++++++++++
+ User/src/services/hospitals.js     | 106 +++++++++++++++++++++++
+ 6 files changed, 251 insertions(+), 90 deletions(-)
+ create mode 100644 User/src/services/distance.js
+ create mode 100644 User/src/services/geolocation.js
+ create mode 100644 User/src/services/hospitals.js
+
+diff --git a/User/README.md b/User/README.md
+index 18bc70e..aebe2b6 100644
+--- a/User/README.md
++++ b/User/README.md
+@@ -14,3 +14,13 @@ The React Compiler is not enabled on this template because of its impact on dev
+ ## Expanding the ESLint configuration
+ 
+ If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
++
++## Nearby Hospitals: API Key Setup
++
++To use Google Places for nearby hospitals (preferred), add a `.env` file in this app folder with:
++
++```
++VITE_GOOGLE_MAPS_API_KEY=your_api_key_here
++```
++
++If no key is provided, the app falls back to OpenStreetMap Overpass API. Note that direct Google Places requests from the browser may be subject to CORS; a backend proxy is recommended for production deployments.
+diff --git a/User/package-lock.json b/User/package-lock.json
+index 5ce7de2..56961bf 100644
+--- a/User/package-lock.json
++++ b/User/package-lock.json
+@@ -1603,12 +1603,12 @@
+       "license": "MIT"
+     },
+     "node_modules/@types/node": {
+-      "version": "18.19.130",
+-      "resolved": "https://registry.npmjs.org/@types/node/-/node-18.19.130.tgz",
+-      "integrity": "sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg==",
++      "version": "25.2.3",
++      "resolved": "https://registry.npmjs.org/@types/node/-/node-25.2.3.tgz",
++      "integrity": "sha512-m0jEgYlYz+mDJZ2+F4v8D1AyQb+QzsNqRuI7xg1VQX/KlKS0qT9r1Mo16yo5F/MtifXFgaofIFsdFMox2SxIbQ==",
+       "license": "MIT",
+       "dependencies": {
+-        "undici-types": "~5.26.4"
++        "undici-types": "~7.16.0"
+       }
+     },
+     "node_modules/@types/node-fetch": {
+@@ -1631,7 +1631,6 @@
+       "version": "19.2.10",
+       "resolved": "https://registry.npmjs.org/@types/react/-/react-19.2.10.tgz",
+       "integrity": "sha512-WPigyYuGhgZ/cTPRXB2EwUw+XvsRA3GqHlsP4qteqrnnjDrApbS7MxcGr/hke5iUoeB7E/gQtrs9I37zAJ0Vjw==",
+-      "dev": true,
+       "license": "MIT",
+       "dependencies": {
+         "csstype": "^3.2.2"
+@@ -2187,7 +2186,6 @@
+       "version": "3.2.3",
+       "resolved": "https://registry.npmjs.org/csstype/-/csstype-3.2.3.tgz",
+       "integrity": "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==",
+-      "dev": true,
+       "license": "MIT"
+     },
+     "node_modules/debug": {
+@@ -2874,6 +2872,21 @@
+         "node-fetch": "^2.6.7"
+       }
+     },
++    "node_modules/groq-sdk/node_modules/@types/node": {
++      "version": "18.19.130",
++      "resolved": "https://registry.npmjs.org/@types/node/-/node-18.19.130.tgz",
++      "integrity": "sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg==",
++      "license": "MIT",
++      "dependencies": {
++        "undici-types": "~5.26.4"
++      }
++    },
++    "node_modules/groq-sdk/node_modules/undici-types": {
++      "version": "5.26.5",
++      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-5.26.5.tgz",
++      "integrity": "sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==",
++      "license": "MIT"
++    },
+     "node_modules/has-flag": {
+       "version": "4.0.0",
+       "resolved": "https://registry.npmjs.org/has-flag/-/has-flag-4.0.0.tgz",
+@@ -4790,9 +4803,9 @@
+       }
+     },
+     "node_modules/undici-types": {
+-      "version": "5.26.5",
+-      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-5.26.5.tgz",
+-      "integrity": "sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==",
++      "version": "7.16.0",
++      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-7.16.0.tgz",
++      "integrity": "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==",
+       "license": "MIT"
+     },
+     "node_modules/unified": {
+diff --git a/User/src/pages/NearbyHospitals.jsx b/User/src/pages/NearbyHospitals.jsx
+index 133c669..2af7e17 100644
+--- a/User/src/pages/NearbyHospitals.jsx
++++ b/User/src/pages/NearbyHospitals.jsx
+@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react'
+ import { useNavigate } from 'react-router-dom'
+ import Loader from '../components/Loader'
+ import './NearbyHospitals.css'
++import { getCurrentLocation } from '../services/geolocation'
++import {
++  fetchNearbyHospitalsGoogle,
++  fetchNearbyHospitalsOverpass,
++  sortAndAttachDistance,
++} from '../services/hospitals'
++import { getDistanceKm } from '../services/distance'
+ 
+ function NearbyHospitals() {
+   const navigate = useNavigate()
+@@ -15,98 +22,58 @@ function NearbyHospitals() {
+     getUserLocation()
+   }, [])
+ 
+-  const getUserLocation = () => {
++  const getUserLocation = async () => {
+     setIsLoading(true)
+     setLocationError(null)
+-
+-    if (!navigator.geolocation) {
+-      setLocationError('Geolocation is not supported by your browser')
++    try {
++      const loc = await getCurrentLocation({ timeout: 15000 })
++      setUserLocation(loc)
++      await findNearbyHospitals(loc)
++    } catch (err) {
++      if (err.code === 'permission-denied') {
++        setLocationError('Location access is required to find nearby hospitals.')
++      } else if (err.code === 'not-supported') {
++        setLocationError('Geolocation is not supported by your browser')
++      } else {
++        setLocationError(err.message || 'Unable to retrieve your location.')
++      }
+       setIsLoading(false)
+-      return
+     }
+-
+-    navigator.geolocation.getCurrentPosition(
+-      (position) => {
+-        const location = {
+-          lat: position.coords.latitude,
+-          lng: position.coords.longitude
+-        }
+-        setUserLocation(location)
+-        findNearbyHospitals(location)
+-      },
+-      (error) => {
+-        console.error('Error getting location:', error)
+-        setLocationError('Unable to retrieve your location. Please enable location services.')
+-        setIsLoading(false)
+-      },
+-      {
+-        enableHighAccuracy: true,
+-        timeout: 10000,
+-        maximumAge: 0
+-      }
+-    )
+   }
+ 
+   const findNearbyHospitals = async (location) => {
+     try {
+       setIsLoading(true)
+-      
+-      // Use OpenStreetMap Overpass API to find real nearby hospitals
+-      const overpassQuery = `
+-        [out:json][timeout:25];
+-        (
+-          node["amenity"="hospital"](around:5000,${location.lat},${location.lng});
+-          way["amenity"="hospital"](around:5000,${location.lat},${location.lng});
+-          relation["amenity"="hospital"](around:5000,${location.lat},${location.lng});
+-        );
+-        out center meta;
+-      `
+-      
+-      const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
+-      
+-      const response = await fetch(overpassUrl)
+-      const data = await response.json()
+-      
+-      if (data.elements && data.elements.length > 0) {
+-        const hospitalData = data.elements.map((element, index) => {
+-          const lat = element.lat || element.center?.lat || location.lat
+-          const lng = element.lon || element.center?.lon || location.lng
+-          
+-          return {
+-            id: element.id?.toString() || `hospital-${index}`,
+-            name: element.tags?.name || element.tags?.["name:en"] || `Hospital ${index + 1}`,
+-            address: formatAddress(element.tags),
+-            lat: lat,
+-            lng: lng,
+-            rating: 'N/A',
+-            userRatingsTotal: 0,
+-            isOpen: determineOpenStatus(element.tags),
+-            phone: element.tags?.phone || element.tags?.["contact:phone"] || 'N/A',
+-            description: element.tags?.description || `${element.tags?.name || 'Hospital'} - Healthcare facility providing medical services`,
+-            openingHours: parseOpeningHours(element.tags?.opening_hours),
+-            facilities: extractFacilities(element.tags),
+-            website: element.tags?.website || element.tags?.["contact:website"] || null,
+-            emergency: element.tags?.emergency ? element.tags.emergency !== 'no' : true
+-          }
+-        }).filter(hospital => hospital.name !== 'Hospital')
+-        
+-        if (hospitalData.length > 0) {
+-          setHospitals(hospitalData)
+-        } else {
+-          setHospitals([])
+-          setLocationError('No hospitals found in your area. Try expanding your search radius.')
++      const radius = 5000
++      const googleApiKey = import.meta.env?.VITE_GOOGLE_MAPS_API_KEY
++
++      let results = []
++      if (googleApiKey) {
++        try {
++          const googleResults = await fetchNearbyHospitalsGoogle(location, radius, googleApiKey)
++          results = googleResults
++        } catch (googleErr) {
++          console.warn('Google Places failed, falling back to Overpass:', googleErr)
++          const overpassResults = await fetchNearbyHospitalsOverpass(location, radius)
++          results = overpassResults
+         }
+       } else {
++        const overpassResults = await fetchNearbyHospitalsOverpass(location, radius)
++        results = overpassResults
++      }
++
++      if (results.length === 0) {
+         setHospitals([])
+-        setLocationError('No hospitals found in your area. Please try a different location or use Google Maps to search manually.')
++        setLocationError('No hospitals found within 5 km of your location.')
++      } else {
++        const sorted = sortAndAttachDistance(results, location)
++        setHospitals(sorted)
+       }
+-      
+     } catch (error) {
+       console.error('Error finding hospitals:', error)
+       setHospitals([])
+-      setLocationError('Unable to search for hospitals. Please check your internet connection and try again.')
++      setLocationError('Unable to search for hospitals due to an API error.')
+     }
+-    
+     setIsLoading(false)
+   }
+ 
+@@ -201,7 +168,8 @@ function NearbyHospitals() {
+   }
+ 
+   const getDirections = (hospital) => {
+-    const url = `https://www.google.com/maps/dir/?api=1&destination=${hospital.lat},${hospital.lng}`
++    const origin = userLocation ? `${userLocation.lat},${userLocation.lng}` : ''
++    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${hospital.lat},${hospital.lng}&travelmode=driving`
+     window.open(url, '_blank')
+   }
+ 
+@@ -300,11 +268,9 @@ function NearbyHospitals() {
+                   ≡ƒôì {hospital.address}
+                 </p>
+ 
+-                {hospital.description && (
+-                  <p className="hospital-description">
+-                    {hospital.description}
+-                  </p>
+-                )}
++                <p className="hospital-description">
++                  Distance: {hospital.distanceKm ? hospital.distanceKm.toFixed(2) : getDistanceKm(userLocation?.lat, userLocation?.lng, hospital.lat, hospital.lng).toFixed(2)} km
++                </p>
+ 
+                 {hospital.rating !== 'N/A' && (
+                   <div className="hospital-rating">
+@@ -316,6 +282,12 @@ function NearbyHospitals() {
+                 {/* Expandable Details */}
+                 {selectedHospital?.id === hospital.id && (
+                   <div className="hospital-details">
++                    {hospital.isOpen !== null && (
++                      <div className="details-section">
++                        <h4>≡ƒôî Status</h4>
++                        <p>{hospital.isOpen ? 'Open Now' : 'Closed'}</p>
++                      </div>
++                    )}
+                     {hospital.openingHours && (
+                       <div className="details-section">
+                         <h4>≡ƒòÆ Opening Hours</h4>
+diff --git a/User/src/services/distance.js b/User/src/services/distance.js
+new file mode 100644
+index 0000000..2d511c3
+--- /dev/null
++++ b/User/src/services/distance.js
+@@ -0,0 +1,13 @@
++export function getDistanceKm(lat1, lon1, lat2, lon2) {
++  const toRad = (v) => (v * Math.PI) / 180
++  const R = 6371 // Earth radius in KM
++
++  const dLat = toRad(lat2 - lat1)
++  const dLon = toRad(lon2 - lon1)
++  const a =
++    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
++    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
++      Math.sin(dLon / 2) * Math.sin(dLon / 2)
++  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
++  return R * c
++}
+diff --git a/User/src/services/geolocation.js b/User/src/services/geolocation.js
+new file mode 100644
+index 0000000..1abaa79
+--- /dev/null
++++ b/User/src/services/geolocation.js
+@@ -0,0 +1,47 @@
++export async function getCurrentLocation(options = {}) {
++  const defaultOptions = {
++    enableHighAccuracy: true,
++    timeout: 15000,
++    maximumAge: 0,
++  }
++
++  const opts = { ...defaultOptions, ...options }
++
++  if (!navigator.geolocation) {
++    const error = new Error('Geolocation is not supported by your browser')
++    error.code = 'not-supported'
++    throw error
++  }
++
++  return new Promise((resolve, reject) => {
++    navigator.geolocation.getCurrentPosition(
++      (position) => {
++        resolve({
++          lat: position.coords.latitude,
++          lng: position.coords.longitude,
++        })
++      },
++      (error) => {
++        let err = new Error('Unable to retrieve your location')
++        switch (error.code) {
++          case error.PERMISSION_DENIED:
++            err = new Error('Location access is required to find nearby hospitals.')
++            err.code = 'permission-denied'
++            break
++          case error.POSITION_UNAVAILABLE:
++            err = new Error('Location information is unavailable')
++            err.code = 'position-unavailable'
++            break
++          case error.TIMEOUT:
++            err = new Error('Location request timed out')
++            err.code = 'timeout'
++            break
++          default:
++            err.code = 'unknown'
++        }
++        reject(err)
++      },
++      opts,
++    )
++  })
++}
+diff --git a/User/src/services/hospitals.js b/User/src/services/hospitals.js
+new file mode 100644
+index 0000000..3ec1442
+--- /dev/null
++++ b/User/src/services/hospitals.js
+@@ -0,0 +1,106 @@
++import { getDistanceKm } from './distance'
++
++function normalizeGooglePlace(place) {
++  const lat = place?.geometry?.location?.lat
++  const lng = place?.geometry?.location?.lng
++  if (typeof lat !== 'number' || typeof lng !== 'number') return null
++
++  return {
++    id: place.place_id || `${lat},${lng}`,
++    name: place.name || 'Hospital',
++    address: place.vicinity || place.formatted_address || 'Address not available',
++    lat,
++    lng,
++    isOpen: place.opening_hours?.open_now ?? null,
++    rating: typeof place.rating === 'number' ? place.rating : 'N/A',
++    userRatingsTotal: place.user_ratings_total || 0,
++    phone: 'N/A',
++    website: null,
++    emergency: true,
++  }
++}
++
++function formatAddressFromTags(tags) {
++  const parts = []
++  if (tags?.['addr:housenumber']) parts.push(tags['addr:housenumber'])
++  if (tags?.['addr:street']) parts.push(tags['addr:street'])
++  if (tags?.['addr:city']) parts.push(tags['addr:city'])
++  if (tags?.['addr:postcode']) parts.push(tags['addr:postcode'])
++  if (parts.length > 0) return parts.join(', ')
++  return tags?.address || 'Address not available'
++}
++
++function normalizeOverpassElement(element) {
++  const lat = element.lat ?? element.center?.lat
++  const lng = element.lon ?? element.center?.lon
++  if (typeof lat !== 'number' || typeof lng !== 'number') return null
++
++  const tags = element.tags || {}
++  const isOpen = (() => {
++    if (tags.opening_hours === '24/7') return true
++    if (tags.opening_hours === 'closed') return false
++    if (tags['opening_hours:covid19'] === 'closed') return false
++    return tags.emergency !== 'no' ? true : null
++  })()
++
++  return {
++    id: String(element.id ?? `${lat},${lng}`),
++    name: tags.name || tags['name:en'] || 'Hospital',
++    address: formatAddressFromTags(tags),
++    lat,
++    lng,
++    isOpen,
++    rating: 'N/A',
++    userRatingsTotal: 0,
++    phone: tags.phone || tags['contact:phone'] || 'N/A',
++    website: tags.website || tags['contact:website'] || null,
++    emergency: tags.emergency ? tags.emergency !== 'no' : true,
++  }
++}
++
++export async function fetchNearbyHospitalsGoogle({ lat, lng }, radius, apiKey) {
++  const url = new URL('https://maps.googleapis.com/maps/api/place/nearbysearch/json')
++  url.searchParams.set('location', `${lat},${lng}`)
++  url.searchParams.set('radius', String(radius))
++  url.searchParams.set('type', 'hospital')
++  url.searchParams.set('key', apiKey)
++
++  const resp = await fetch(url.toString())
++  if (!resp.ok) throw new Error(`Google Places API failed: ${resp.status}`)
++  const data = await resp.json()
++  const places = Array.isArray(data.results) ? data.results : []
++  const normalized = places
++    .map(normalizeGooglePlace)
++    .filter(Boolean)
++  return normalized
++}
++
++export async function fetchNearbyHospitalsOverpass({ lat, lng }, radius) {
++  const query = `
++    [out:json][timeout:25];
++    (
++      node["amenity"="hospital"](around:${radius},${lat},${lng});
++      way["amenity"="hospital"](around:${radius},${lat},${lng});
++      relation["amenity"="hospital"](around:${radius},${lat},${lng});
++    );
++    out center meta;
++  `
++  const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`
++  const resp = await fetch(url)
++  if (!resp.ok) throw new Error(`Overpass API failed: ${resp.status}`)
++  const data = await resp.json()
++  const elements = Array.isArray(data.elements) ? data.elements : []
++  const normalized = elements
++    .map(normalizeOverpassElement)
++    .filter((h) => h && h.name !== 'Hospital')
++  return normalized
++}
++
++export function sortAndAttachDistance(hospitals, userLocation) {
++  const withDistance = hospitals.map((h) => ({
++    ...h,
++    distanceKm: getDistanceKm(userLocation.lat, userLocation.lng, h.lat, h.lng),
++  }))
++  withDistance.sort((a, b) => a.distanceKm - b.distanceKm)
++  return withDistance
++}
+-- 
+2.52.0.windows.1
+
