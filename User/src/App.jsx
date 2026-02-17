@@ -6,6 +6,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Sphere, MeshDistortMaterial, Stars, Float, Environment, PerspectiveCamera } from '@react-three/drei'
 import * as THREE from 'three'
 import './App.css'
+import { detectCriticalSymptoms, isEmergency, isUrgent, getEmergencyAdvice } from './utils/criticalSymptomDetector'
 
 const groq = new Groq({
   apiKey: import.meta.env.VITE_GROQ_API_KEY,
@@ -18,25 +19,39 @@ Your role is to:
 - Ask ONE specific, relevant question at a time to gather information about the patient's symptoms.
 - Build a complete picture through sequential questioning (location, duration, severity, associated symptoms, triggers, etc.).
 - Analyze the collected information logically using medical knowledge and pattern recognition.
+- **CRITICAL: Immediately recognize life-threatening symptoms and clearly state them in your response.**
 - After gathering sufficient information through your questions, provide a list of possible conditions or diseases based on the symptoms.
 - Maintain a calm, empathetic, and professional tone throughout the consultation.
 
 Guidelines you must follow:
 1. ALWAYS ask only ONE question per response until you have enough information.
 2. Questions should be clear, specific, and directly relevant to narrowing down possible conditions.
-3. After 5-7 questions (or when you have sufficient information), provide your assessment.
-4. In your final assessment, list possible conditions in order of likelihood.
-5. Do NOT provide practical steps, precautions, or "when to consult a professional" sections.
-6. Do NOT provide treatment advice, medication recommendations, or home remedies.
-7. Focus only on identifying possible conditions based on the symptoms described.
-8. Use simple, patient-friendly language without unnecessary medical jargon.
-9. Be unbiased, ethical, and privacy-conscious at all times.
-10. Always remind users in your final assessment that this is for informational purposes only and they should consult a healthcare professional for confirmation and treatment.
+3. **EMERGENCY DETECTION: If the patient describes symptoms of heart attack, stroke, severe chest pain, difficulty breathing, severe bleeding, loss of consciousness, or other life-threatening conditions, IMMEDIATELY mention these specific conditions in your response (use exact terms like "heart attack", "stroke", "severe bleeding", etc.).**
+4. After 5-7 questions (or when you have sufficient information), provide your assessment.
+5. In your final assessment, list possible conditions in order of likelihood.
+6. Do NOT provide practical steps, precautions, or "when to consult a professional" sections.
+7. Do NOT provide treatment advice, medication recommendations, or home remedies.
+8. Focus only on identifying possible conditions based on the symptoms described.
+9. Use simple, patient-friendly language without unnecessary medical jargon.
+10. Be unbiased, ethical, and privacy-conscious at all times.
+11. Always remind users in your final assessment that this is for informational purposes only and they should consult a healthcare professional for confirmation and treatment.
+
+**CRITICAL SYMPTOMS TO WATCH FOR (mention these specifically if detected):**
+- Heart attack symptoms: chest pain, pain radiating to arm/jaw, crushing sensation
+- Stroke symptoms: facial drooping, arm weakness, speech difficulties, sudden confusion
+- Severe respiratory: difficulty breathing, gasping, cannot breathe
+- Internal bleeding: vomiting blood, blood in stool, severe abdominal pain
+- Severe allergic reaction: throat swelling, anaphylaxis
+- Loss of consciousness, seizures
+- Severe trauma or injuries
+- Cancer indicators (mention if symptoms strongly suggest)
+- Pulmonary embolism symptoms
+- Sepsis or severe infection signs
 
 Question Strategy:
 - Start with location and nature of the main symptom
 - Ask about duration and progression
-- Inquire about severity and pattern
+- Inquire about severity and pattern (use severity scales when appropriate)
 - Check for associated symptoms
 - Ask about triggers or relieving factors
 - Inquire about medical history if relevant
@@ -50,7 +65,7 @@ After gathering information, provide:
   3. [Condition Name] - Brief explanation
 - **Important**: Remind them to consult a healthcare professional for proper diagnosis and treatment.
 
-Your goal is to conduct a thorough diagnostic interview and provide an informed assessment of possible conditions.`
+Your goal is to conduct a thorough diagnostic interview and provide an informed assessment of possible conditions while ensuring critical symptoms are immediately identified.`
 
 // 3D Background Components
 function AnimatedSphere({ position, color, speed = 1 }) {
@@ -329,8 +344,23 @@ function App() {
       }
       setMessages(prev => [...prev, assistantMessage])
       
-      // Check if diagnosis is complete and show hospital finder button
-      if (isDiagnosisComplete(assistantMessage.content)) {
+      // Check for critical symptoms in both user input and AI response
+      const userDetection = detectCriticalSymptoms(currentInput)
+      const aiDetection = detectCriticalSymptoms(assistantMessage.content)
+      const criticalDetection = userDetection || aiDetection
+      
+      // If critical symptoms detected, show emergency warning
+      if (criticalDetection) {
+        setTimeout(() => {
+          const emergencyAdvice = getEmergencyAdvice(criticalDetection.severity)
+          setMessages(prev => [...prev, {
+            role: 'system',
+            content: `emergency-warning|||${criticalDetection.warning}|||${emergencyAdvice}|||${criticalDetection.severity}`
+          }])
+        }, 500)
+      }
+      // Otherwise, check if diagnosis is complete and show hospital finder button
+      else if (isDiagnosisComplete(assistantMessage.content)) {
         setTimeout(() => {
           setMessages(prev => [...prev, {
             role: 'system',
@@ -376,27 +406,56 @@ function App() {
         </div>
         
         <div className="chat-messages">
-          {messages.map((message, index) => (
-            <div key={index}>
-              {message.content === 'hospital-finder-prompt' ? (
-                <div className="hospital-finder-prompt">
+          {messages.map((message, index) => {
+            // Handle emergency warning
+            if (message.content.startsWith('emergency-warning|||')) {
+              const [, warning, advice, severity] = message.content.split('|||')
+              return (
+                <div key={index} className={`emergency-alert ${severity.toLowerCase()}`}>
+                  <div className="emergency-header">
+                    {warning}
+                  </div>
+                  <div className="emergency-advice">
+                    <ReactMarkdown>{advice}</ReactMarkdown>
+                  </div>
+                  <div className="emergency-buttons">
+                    <button onClick={() => navigate('/nearby-hospitals')} className="emergency-hospitals-btn">
+                      🚑 Find Nearest Emergency Hospital NOW
+                    </button>
+                    {severity === 'EMERGENCY' && (
+                      <a href="tel:911" className="call-911-btn">
+                        📞 Call 911
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )
+            }
+            
+            // Handle regular hospital finder prompt
+            if (message.content === 'hospital-finder-prompt') {
+              return (
+                <div key={index} className="hospital-finder-prompt">
                   <button onClick={() => navigate('/nearby-hospitals')} className="find-hospitals-btn">
                     🏥 Find Nearby Hospitals
                   </button>
                 </div>
-              ) : (
-                <div className={`message ${message.role}`}>
-                  <div className="message-content">
-                    {message.role === 'assistant' ? (
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
-                    ) : (
-                      message.content
-                    )}
-                  </div>
+              )
+            }
+            
+            // Handle regular messages
+            return (
+              <div key={index} className={`message ${message.role}`}>
+                <div className="message-content">
+                  {message.role === 'assistant' ? (
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                  ) : (
+                    message.content
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            )
+          })}
           
           {isLoading && (
             <div className="message assistant">
