@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Loader from '../components/Loader'
+import { getUserLocation, findNearbyHospitals } from '../services/locationService'
 import './NearbyHospitals.css'
-import { getCurrentLocation } from '../services/geolocation'
-import {
-  fetchNearbyHospitalsGoogle,
-  fetchNearbyHospitalsOverpass,
-  sortAndAttachDistance,
-} from '../services/hospitals'
-import { getDistanceKm } from '../services/distance'
 
 function NearbyHospitals() {
   const navigate = useNavigate()
@@ -17,173 +11,115 @@ function NearbyHospitals() {
   const [userLocation, setUserLocation] = useState(null)
   const [locationError, setLocationError] = useState(null)
   const [selectedHospital, setSelectedHospital] = useState(null)
+  const [dataSource, setDataSource] = useState(null)
 
   useEffect(() => {
-    getUserLocation()
+    initializeLocation()
   }, [])
 
-  const getUserLocation = async () => {
+  /**
+   * Initialize user location and fetch nearby hospitals
+   */
+  const initializeLocation = async () => {
     setIsLoading(true)
     setLocationError(null)
+
     try {
-      const loc = await getCurrentLocation({ timeout: 15000 })
-      setUserLocation(loc)
-      await findNearbyHospitals(loc)
-    } catch (err) {
-      if (err.code === 'permission-denied') {
-        setLocationError('Location access is required to find nearby hospitals.')
-      } else if (err.code === 'not-supported') {
-        setLocationError('Geolocation is not supported by your browser')
-      } else {
-        setLocationError(err.message || 'Unable to retrieve your location.')
-      }
+      // Get user's current location
+      console.log('Getting user location...')
+      const location = await getUserLocation()
+      
+      console.log('User location obtained:', location)
+      setUserLocation(location)
+      
+      // Fetch nearby hospitals using the location
+      await fetchHospitals(location)
+      
+    } catch (error) {
+      console.error('Location error:', error)
+      setLocationError(error.message)
       setIsLoading(false)
     }
   }
 
-  const findNearbyHospitals = async (location) => {
+  /**
+   * Fetch nearby hospitals using location services
+   */
+  const fetchHospitals = async (location) => {
     try {
       setIsLoading(true)
-      const radius = 5000
-      const googleApiKey = import.meta.env?.VITE_GOOGLE_MAPS_API_KEY
-
-      let results = []
-      if (googleApiKey) {
-        try {
-          const googleResults = await fetchNearbyHospitalsGoogle(location, radius, googleApiKey)
-          results = googleResults
-        } catch (googleErr) {
-          console.warn('Google Places failed, falling back to Overpass:', googleErr)
-          const overpassResults = await fetchNearbyHospitalsOverpass(location, radius)
-          results = overpassResults
-        }
+      
+      // Optional: Add your Google Places API key here for better results
+      // Get it from: https://console.cloud.google.com/apis/credentials
+      const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY || null
+      
+      if (GOOGLE_API_KEY) {
+        console.log('Using Google Places API (preferred method)')
       } else {
-        const overpassResults = await fetchNearbyHospitalsOverpass(location, radius)
-        results = overpassResults
+        console.log('Using OpenStreetMap (no Google API key found)')
       }
-
-      if (results.length === 0) {
+      
+      // Find nearby hospitals (tries Google first, falls back to OSM)
+      const result = await findNearbyHospitals(location, GOOGLE_API_KEY)
+      
+      console.log(`Found ${result.hospitals.length} hospitals using ${result.source}`)
+      setDataSource(result.source)
+      
+      if (result.hospitals.length > 0) {
+        setHospitals(result.hospitals)
+        setLocationError(null)
+      } else {
         setHospitals([])
-        setLocationError('No hospitals found within 5 km of your location.')
-      } else {
-        const sorted = sortAndAttachDistance(results, location)
-        setHospitals(sorted)
+        setLocationError('No hospitals found within 5km of your location. Try searching on Google Maps.')
       }
+      
     } catch (error) {
-      console.error('Error finding hospitals:', error)
+      console.error('Error fetching hospitals:', error)
+      setLocationError('Unable to search for hospitals. Please check your internet connection and try again.')
       setHospitals([])
-      setLocationError('Unable to search for hospitals due to an API error.')
-    }
-    setIsLoading(false)
-  }
-
-  // Helper functions for processing hospital data
-  const formatAddress = (tags) => {
-    const parts = []
-    if (tags?.["addr:housenumber"]) parts.push(tags["addr:housenumber"])
-    if (tags?.["addr:street"]) parts.push(tags["addr:street"])
-    if (tags?.["addr:city"]) parts.push(tags["addr:city"])
-    if (tags?.["addr:postcode"]) parts.push(tags["addr:postcode"])
-    
-    if (parts.length > 0) {
-      return parts.join(', ')
-    }
-    
-    return tags?.address || 'Address not available'
-  }
-
-  const determineOpenStatus = (tags) => {
-    if (tags?.opening_hours === '24/7') return true
-    if (tags?.opening_hours === 'closed') return false
-    if (tags?.["opening_hours:covid19"] === 'closed') return false
-    
-    // For hospitals, assume open unless explicitly closed
-    return tags?.emergency !== 'no' ? true : null
-  }
-
-  const parseOpeningHours = (openingHours) => {
-    if (!openingHours) {
-      return {
-        monday: 'Hours not available',
-        tuesday: 'Hours not available', 
-        wednesday: 'Hours not available',
-        thursday: 'Hours not available',
-        friday: 'Hours not available',
-        saturday: 'Hours not available',
-        sunday: 'Hours not available'
-      }
-    }
-    
-    if (openingHours === '24/7') {
-      return {
-        monday: '24 Hours',
-        tuesday: '24 Hours',
-        wednesday: '24 Hours', 
-        thursday: '24 Hours',
-        friday: '24 Hours',
-        saturday: '24 Hours',
-        sunday: '24 Hours'
-      }
-    }
-    
-    // Parse more complex opening hours (basic implementation)
-    return {
-      monday: openingHours,
-      tuesday: openingHours,
-      wednesday: openingHours,
-      thursday: openingHours, 
-      friday: openingHours,
-      saturday: openingHours,
-      sunday: openingHours
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const extractFacilities = (tags) => {
-    const facilities = []
-    
-    // Emergency services
-    if (tags?.emergency && tags.emergency !== 'no') {
-      facilities.push('Emergency Services')
-    }
-    
-    // Specific medical services
-    if (tags?.["healthcare:speciality"]) {
-      const specialties = tags["healthcare:speciality"].split(';')
-      facilities.push(...specialties.map(s => s.trim().replace(/_/g, ' ')))
-    }
-    
-    // Basic facilities
-    if (tags?.wheelchair === 'yes') facilities.push('Wheelchair Accessible')
-    if (tags?.parking) facilities.push('Parking Available')
-    if (tags?.wifi === 'yes') facilities.push('Free WiFi')
-    if (tags?.pharmacy === 'yes') facilities.push('Pharmacy')
-    if (tags?.laboratory === 'yes') facilities.push('Laboratory')
-    
-    // Default facilities for hospitals
-    if (facilities.length === 0) {
-      facilities.push('Medical Services', 'Healthcare Professionals')
-    }
-    
-    return facilities
+  /**
+   * Retry getting location
+   */
+  const handleRetry = () => {
+    initializeLocation()
   }
 
+  /**
+   * Open Google Maps directions from user location to hospital
+   */
   const getDirections = (hospital) => {
-    const origin = userLocation ? `${userLocation.lat},${userLocation.lng}` : ''
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${hospital.lat},${hospital.lng}&travelmode=driving`
-    window.open(url, '_blank')
+    if (userLocation) {
+      // Include user's current location as origin
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${hospital.lat},${hospital.lng}`
+      window.open(url, '_blank')
+    } else {
+      // Fallback if user location is not available
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${hospital.lat},${hospital.lng}`
+      window.open(url, '_blank')
+    }
   }
 
+  /**
+   * Search for hospitals on Google Maps
+   */
   const searchOnMaps = () => {
     if (userLocation) {
-      const url = `https://www.google.com/maps/search/hospitals+near+me/@${userLocation.lat},${userLocation.lng},14z`
+      const url = `https://www.google.com/maps/search/hospitals/@${userLocation.lat},${userLocation.lng},14z`
       window.open(url, '_blank')
+    } else {
+      window.open('https://www.google.com/maps/search/hospitals', '_blank')
     }
   }
 
   if (isLoading) {
     return <Loader 
-      message="Searching Real Hospitals Near You" 
-      subtitle="Finding actual medical facilities in your area using live location data..."
+      message="Finding Nearby Hospitals" 
+      subtitle="Getting your location and searching for hospitals within 5km..."
     />
   }
 
@@ -199,7 +135,17 @@ function NearbyHospitals() {
         </button>
         <div className="header-content">
           <h1>🏥 Nearby Hospitals</h1>
-          <p>Healthcare facilities near your location</p>
+          <p>
+            {userLocation 
+              ? `Found ${hospitals.length} hospital${hospitals.length !== 1 ? 's' : ''} within 5km`
+              : 'Searching for hospitals near you'
+            }
+          </p>
+          {dataSource && (
+            <small style={{ opacity: 0.7, fontSize: '0.85em' }}>
+              {dataSource === 'google_places' ? '📍 Powered by Google Places' : '🗺️ Powered by OpenStreetMap'}
+            </small>
+          )}
         </div>
         <button onClick={searchOnMaps} className="maps-button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -221,7 +167,7 @@ function NearbyHospitals() {
           <div>
             <p className="error-title">{locationError}</p>
             <div className="error-actions">
-              <button onClick={getUserLocation} className="retry-button">
+              <button onClick={handleRetry} className="retry-button">
                 📍 Retry Location
               </button>
               <button onClick={searchOnMaps} className="maps-fallback-button">
@@ -229,6 +175,21 @@ function NearbyHospitals() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Debug Info (only shown when user location is available) */}
+      {userLocation && hospitals.length > 0 && (
+        <div style={{ 
+          padding: '10px', 
+          background: '#f0f8ff', 
+          borderRadius: '8px', 
+          margin: '10px 20px',
+          fontSize: '0.9em',
+          color: '#333'
+        }}>
+          <strong>📍 Your Location:</strong> {userLocation.lat.toFixed(6)}, {userLocation.lng.toFixed(6)}
+          {userLocation.accuracy && ` (±${Math.round(userLocation.accuracy)}m accuracy)`}
         </div>
       )}
 
@@ -246,16 +207,23 @@ function NearbyHospitals() {
               </span>
               <span className="stat-label">Open Now</span>
             </div>
+            <div className="stat-card">
+              <span className="stat-number">
+                {hospitals[0]?.distance ? `${hospitals[0].distance} km` : 'N/A'}
+              </span>
+              <span className="stat-label">Nearest</span>
+            </div>
           </div>
 
           <div className="hospitals-grid">
-            {hospitals.map((hospital) => (
+            {hospitals.map((hospital, index) => (
               <div 
                 key={hospital.id} 
                 className={`hospital-card ${selectedHospital?.id === hospital.id ? 'selected' : ''}`}
                 onClick={() => setSelectedHospital(selectedHospital?.id === hospital.id ? null : hospital)}
               >
                 <div className="hospital-card-header">
+                  <span className="hospital-rank">#{index + 1}</span>
                   {hospital.isOpen !== null && (
                     <span className={`status-badge ${hospital.isOpen ? 'open' : 'closed'}`}>
                       {hospital.isOpen ? '🟢 Open' : '🔴 Closed'}
@@ -264,12 +232,16 @@ function NearbyHospitals() {
                 </div>
 
                 <h3 className="hospital-name">{hospital.name}</h3>
+                
+                {/* Distance Display - REQUIRED */}
+                {hospital.distance !== undefined && (
+                  <p className="hospital-distance">
+                    📏 <strong>{hospital.distance} km</strong> away
+                  </p>
+                )}
+                
                 <p className="hospital-address">
                   📍 {hospital.address}
-                </p>
-
-                <p className="hospital-description">
-                  Distance: {hospital.distanceKm ? hospital.distanceKm.toFixed(2) : getDistanceKm(userLocation?.lat, userLocation?.lng, hospital.lat, hospital.lng).toFixed(2)} km
                 </p>
 
                 {hospital.rating !== 'N/A' && (
@@ -282,26 +254,39 @@ function NearbyHospitals() {
                 {/* Expandable Details */}
                 {selectedHospital?.id === hospital.id && (
                   <div className="hospital-details">
-                    {hospital.isOpen !== null && (
-                      <div className="details-section">
-                        <h4>📌 Status</h4>
-                        <p>{hospital.isOpen ? 'Open Now' : 'Closed'}</p>
-                      </div>
-                    )}
+                    {/* Opening Hours */}
                     {hospital.openingHours && (
                       <div className="details-section">
                         <h4>🕒 Opening Hours</h4>
                         <div className="opening-hours">
-                          {Object.entries(hospital.openingHours).map(([day, hours]) => (
-                            <div key={day} className="hours-row">
-                              <span className="day">{day.charAt(0).toUpperCase() + day.slice(1)}</span>
-                              <span className="hours">{hours}</span>
-                            </div>
-                          ))}
+                          {typeof hospital.openingHours === 'string' ? (
+                            <p>{hospital.openingHours}</p>
+                          ) : (
+                            Object.entries(hospital.openingHours).map(([day, hours]) => (
+                              <div key={day} className="hours-row">
+                                <span className="day">{day.charAt(0).toUpperCase() + day.slice(1)}</span>
+                                <span className="hours">{hours}</span>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
                     )}
 
+                    {/* Contact Info */}
+                    {(hospital.phone !== 'N/A' || hospital.website) && (
+                      <div className="details-section">
+                        <h4>📞 Contact Information</h4>
+                        {hospital.phone !== 'N/A' && (
+                          <p>Phone: <a href={`tel:${hospital.phone}`}>{hospital.phone}</a></p>
+                        )}
+                        {hospital.website && (
+                          <p>Website: <a href={hospital.website} target="_blank" rel="noopener noreferrer">Visit Website</a></p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Facilities */}
                     {hospital.facilities && hospital.facilities.length > 0 && (
                       <div className="details-section">
                         <h4>🏥 Facilities & Services</h4>
