@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Loader from '../components/Loader'
 import './NearbyHospitals.css'
+import { getCurrentLocation } from '../services/geolocation'
+import {
+  fetchNearbyHospitalsGoogle,
+  fetchNearbyHospitalsOverpass,
+  sortAndAttachDistance,
+} from '../services/hospitals'
+import { getDistanceKm } from '../services/distance'
 
 function NearbyHospitals() {
   const navigate = useNavigate()
@@ -15,98 +22,58 @@ function NearbyHospitals() {
     getUserLocation()
   }, [])
 
-  const getUserLocation = () => {
+  const getUserLocation = async () => {
     setIsLoading(true)
     setLocationError(null)
-
-    if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by your browser')
-      setIsLoading(false)
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const location = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        }
-        setUserLocation(location)
-        findNearbyHospitals(location)
-      },
-      (error) => {
-        console.error('Error getting location:', error)
-        setLocationError('Unable to retrieve your location. Please enable location services.')
-        setIsLoading(false)
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+    try {
+      const loc = await getCurrentLocation({ timeout: 15000 })
+      setUserLocation(loc)
+      await findNearbyHospitals(loc)
+    } catch (err) {
+      if (err.code === 'permission-denied') {
+        setLocationError('Location access is required to find nearby hospitals.')
+      } else if (err.code === 'not-supported') {
+        setLocationError('Geolocation is not supported by your browser')
+      } else {
+        setLocationError(err.message || 'Unable to retrieve your location.')
       }
-    )
+      setIsLoading(false)
+    }
   }
 
   const findNearbyHospitals = async (location) => {
     try {
       setIsLoading(true)
-      
-      // Use OpenStreetMap Overpass API to find real nearby hospitals
-      const overpassQuery = `
-        [out:json][timeout:25];
-        (
-          node["amenity"="hospital"](around:5000,${location.lat},${location.lng});
-          way["amenity"="hospital"](around:5000,${location.lat},${location.lng});
-          relation["amenity"="hospital"](around:5000,${location.lat},${location.lng});
-        );
-        out center meta;
-      `
-      
-      const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
-      
-      const response = await fetch(overpassUrl)
-      const data = await response.json()
-      
-      if (data.elements && data.elements.length > 0) {
-        const hospitalData = data.elements.map((element, index) => {
-          const lat = element.lat || element.center?.lat || location.lat
-          const lng = element.lon || element.center?.lon || location.lng
-          
-          return {
-            id: element.id?.toString() || `hospital-${index}`,
-            name: element.tags?.name || element.tags?.["name:en"] || `Hospital ${index + 1}`,
-            address: formatAddress(element.tags),
-            lat: lat,
-            lng: lng,
-            rating: 'N/A',
-            userRatingsTotal: 0,
-            isOpen: determineOpenStatus(element.tags),
-            phone: element.tags?.phone || element.tags?.["contact:phone"] || 'N/A',
-            description: element.tags?.description || `${element.tags?.name || 'Hospital'} - Healthcare facility providing medical services`,
-            openingHours: parseOpeningHours(element.tags?.opening_hours),
-            facilities: extractFacilities(element.tags),
-            website: element.tags?.website || element.tags?.["contact:website"] || null,
-            emergency: element.tags?.emergency ? element.tags.emergency !== 'no' : true
-          }
-        }).filter(hospital => hospital.name !== 'Hospital')
-        
-        if (hospitalData.length > 0) {
-          setHospitals(hospitalData)
-        } else {
-          setHospitals([])
-          setLocationError('No hospitals found in your area. Try expanding your search radius.')
+      const radius = 5000
+      const googleApiKey = import.meta.env?.VITE_GOOGLE_MAPS_API_KEY
+
+      let results = []
+      if (googleApiKey) {
+        try {
+          const googleResults = await fetchNearbyHospitalsGoogle(location, radius, googleApiKey)
+          results = googleResults
+        } catch (googleErr) {
+          console.warn('Google Places failed, falling back to Overpass:', googleErr)
+          const overpassResults = await fetchNearbyHospitalsOverpass(location, radius)
+          results = overpassResults
         }
       } else {
-        setHospitals([])
-        setLocationError('No hospitals found in your area. Please try a different location or use Google Maps to search manually.')
+        const overpassResults = await fetchNearbyHospitalsOverpass(location, radius)
+        results = overpassResults
       }
-      
+
+      if (results.length === 0) {
+        setHospitals([])
+        setLocationError('No hospitals found within 5 km of your location.')
+      } else {
+        const sorted = sortAndAttachDistance(results, location)
+        setHospitals(sorted)
+      }
     } catch (error) {
       console.error('Error finding hospitals:', error)
       setHospitals([])
-      setLocationError('Unable to search for hospitals. Please check your internet connection and try again.')
+      setLocationError('Unable to search for hospitals due to an API error.')
     }
-    
     setIsLoading(false)
   }
 
@@ -201,7 +168,8 @@ function NearbyHospitals() {
   }
 
   const getDirections = (hospital) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${hospital.lat},${hospital.lng}`
+    const origin = userLocation ? `${userLocation.lat},${userLocation.lng}` : ''
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${hospital.lat},${hospital.lng}&travelmode=driving`
     window.open(url, '_blank')
   }
 
@@ -300,11 +268,9 @@ function NearbyHospitals() {
                   📍 {hospital.address}
                 </p>
 
-                {hospital.description && (
-                  <p className="hospital-description">
-                    {hospital.description}
-                  </p>
-                )}
+                <p className="hospital-description">
+                  Distance: {hospital.distanceKm ? hospital.distanceKm.toFixed(2) : getDistanceKm(userLocation?.lat, userLocation?.lng, hospital.lat, hospital.lng).toFixed(2)} km
+                </p>
 
                 {hospital.rating !== 'N/A' && (
                   <div className="hospital-rating">
@@ -316,6 +282,12 @@ function NearbyHospitals() {
                 {/* Expandable Details */}
                 {selectedHospital?.id === hospital.id && (
                   <div className="hospital-details">
+                    {hospital.isOpen !== null && (
+                      <div className="details-section">
+                        <h4>📌 Status</h4>
+                        <p>{hospital.isOpen ? 'Open Now' : 'Closed'}</p>
+                      </div>
+                    )}
                     {hospital.openingHours && (
                       <div className="details-section">
                         <h4>🕒 Opening Hours</h4>
