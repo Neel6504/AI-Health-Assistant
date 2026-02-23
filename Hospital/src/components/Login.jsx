@@ -87,12 +87,19 @@ function Login({ onToggleAuth, onLoginSuccess }) {
       <div className="auth-card">
         <div className="auth-header">
           <h1>🏥 Hospital Login</h1>
-          <p>Access your hospital dashboard</p>
+          <p>Access your hospital dashboard and manage services</p>
         </div>
+
+        {errors.general && (
+          <div className="error-banner">
+            <span>⚠️</span>
+            <span>{errors.general}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="email">📧 Email Address</label>
             <input
               type="email"
               id="email"
@@ -101,12 +108,13 @@ function Login({ onToggleAuth, onLoginSuccess }) {
               onChange={handleChange}
               placeholder="hospital@example.com"
               className={errors.email ? 'error' : ''}
+              autoComplete="email"
             />
             {errors.email && <span className="error-message">{errors.email}</span>}
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">🔒 Password</label>
             <input
               type="password"
               id="password"
@@ -115,12 +123,13 @@ function Login({ onToggleAuth, onLoginSuccess }) {
               onChange={handleChange}
               placeholder="Enter your password"
               className={errors.password ? 'error' : ''}
+              autoComplete="current-password"
             />
             {errors.password && <span className="error-message">{errors.password}</span>}
           </div>
 
-          <button type="submit" className="auth-button" disabled={isLoading}>
-            {isLoading ? 'Logging in...' : 'Login'}
+          <button type="submit" className="auth-button login-btn" disabled={isLoading}>
+            {isLoading ? '⏳ Logging in...' : '✓ Login to Dashboard'}
           </button>
         </form>
 
@@ -128,7 +137,7 @@ function Login({ onToggleAuth, onLoginSuccess }) {
           <p>
             Don't have an account?{' '}
             <button onClick={onToggleAuth} className="toggle-auth-btn">
-              Sign Up
+              Register Your Hospital
             </button>
           </p>
         </div>

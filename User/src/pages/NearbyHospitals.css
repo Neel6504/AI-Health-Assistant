@@ -1,6 +1,6 @@
 .nearby-hospitals-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a1e 0%, #1a1a3e 100%);
+  background: #1a1d23;
   color: white;
   padding-bottom: 2rem;
   overflow-y: auto;
@@ -12,7 +12,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(10, 10, 30, 0.95);
+  background: rgba(36, 41, 46, 0.95);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding: 1.5rem 2rem;
@@ -20,7 +20,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .back-button {
@@ -30,17 +30,16 @@
   padding: 0.75rem 1.25rem;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border-radius: 6px;
   color: white;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .back-button:hover {
   background: rgba(255, 255, 255, 0.1);
-  transform: translateX(-4px);
 }
 
 .back-button svg {
@@ -56,10 +55,7 @@
 .header-content h1 {
   font-size: 1.75rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #0366d6;
   margin: 0 0 0.25rem 0;
 }
 
@@ -74,20 +70,18 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #0366d6;
   border: none;
-  border-radius: 12px;
+  border-radius: 6px;
   color: white;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s ease;
 }
 
 .maps-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  background: #0256c0;
 }
 
 .maps-button svg {
@@ -104,7 +98,7 @@
   padding: 1.5rem;
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 16px;
+  border-radius: 8px;
   color: #fca5a5;
 }
 
@@ -123,11 +117,11 @@
   padding: 0.5rem 1rem;
   background: rgba(239, 68, 68, 0.2);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 8px;
+  border-radius: 6px;
   color: #fca5a5;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .retry-button:hover {
@@ -145,11 +139,11 @@
   padding: 0.5rem 1rem;
   background: rgba(59, 130, 246, 0.2);
   border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
+  border-radius: 6px;
   color: #93c5fd;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .maps-fallback-button:hover {
@@ -176,26 +170,22 @@
   flex-direction: column;
   align-items: center;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(36, 41, 46, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+  border-radius: 8px;
   backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2);
-  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(3, 102, 214, 0.2);
+  border-color: rgba(3, 102, 214, 0.3);
 }
 
 .stat-number {
   font-size: 3rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #0366d6;
   line-height: 1;
   margin-bottom: 0.5rem;
 }
@@ -214,12 +204,12 @@
 }
 
 .hospital-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(36, 41, 46, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+  border-radius: 8px;
   padding: 1.75rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
@@ -231,10 +221,10 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  height: 3px;
+  background: #0366d6;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
 }
 
 .hospital-card:hover::before,
@@ -243,16 +233,15 @@
 }
 
 .hospital-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2);
-  border-color: rgba(99, 102, 241, 0.3);
-  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(3, 102, 214, 0.2);
+  border-color: rgba(3, 102, 214, 0.3);
+  background: rgba(36, 41, 46, 0.95);
 }
 
 .hospital-card.selected {
-  border-color: rgba(99, 102, 241, 0.5);
-  background: rgba(99, 102, 241, 0.1);
-  box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+  border-color: rgba(3, 102, 214, 0.5);
+  background: rgba(3, 102, 214, 0.1);
+  box-shadow: 0 0 20px rgba(3, 102, 214, 0.2);
 }
 
 .hospital-card-header {
@@ -264,18 +253,17 @@
 }
 
 .hospital-rank {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #0366d6;
   color: white;
   padding: 0.4rem 0.7rem;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .status-badge {
   padding: 0.4rem 0.8rem;
-  border-radius: 20px;
+  border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 600;
   display: flex;
@@ -359,11 +347,11 @@
   gap: 0.5rem;
   padding: 0.875rem 1rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 6px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .action-button svg {
@@ -372,14 +360,12 @@
 }
 
 .action-button.primary {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #0366d6;
   color: white;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
 .action-button.primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  background: #0256c0;
 }
 
 .action-button.secondary {
@@ -396,8 +382,8 @@
 .no-results {
   text-align: center;
   padding: 4rem 2rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
+  background: rgba(36, 41, 46, 0.8);
+  border-radius: 8px;
   border: 1px dashed rgba(255, 255, 255, 0.2);
 }
 
@@ -421,20 +407,18 @@
 
 .search-maps-button {
   padding: 0.875rem 1.75rem;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #0366d6;
   border: none;
-  border-radius: 12px;
+  border-radius: 6px;
   color: white;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s ease;
 }
 
 .search-maps-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  background: #0256c0;
 }
 
 /* Hospital Description */
@@ -445,8 +429,8 @@
   margin: 0 0 1rem 0;
   padding: 0.75rem 1rem;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  border-left: 3px solid rgba(99, 102, 241, 0.5);
+  border-radius: 6px;
+  border-left: 3px solid rgba(3, 102, 214, 0.5);
 }
 
 /* Hospital Details Section */
@@ -524,18 +508,17 @@
 
 .facility-tag {
   padding: 0.4rem 0.8rem;
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  border-radius: 20px;
+  background: rgba(3, 102, 214, 0.15);
+  border: 1px solid rgba(3, 102, 214, 0.3);
+  border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
-  color: #c7d2fe;
+  color: #93c5fd;
   transition: all 0.2s ease;
 }
 
 .facility-tag:hover {
-  background: rgba(99, 102, 241, 0.25);
-  transform: translateY(-1px);
+  background: rgba(3, 102, 214, 0.25);
 }
 
 /* Info Button */
@@ -547,7 +530,6 @@
 
 .action-button.info:hover {
   background: rgba(34, 197, 94, 0.25);
-  transform: translateY(-2px);
 }
 
 /* Responsive */

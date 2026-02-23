@@ -5,6 +5,7 @@ import { getCurrentLocation } from '../services/locationService'
 
 function Signup({ onToggleAuth, onSignupSuccess }) {
   const [currentSection, setCurrentSection] = useState('hospital-info')
+  const [completedSections, setCompletedSections] = useState([])
   const [formData, setFormData] = useState({
     hospitalName: '',
     registrationNumber: '',
@@ -33,12 +34,12 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
   const [isDetectingLocation, setIsDetectingLocation] = useState(false)
 
   const sections = [
-    { id: 'hospital-info', label: 'Hospital Information', icon: '🏥' },
-    { id: 'contact', label: 'Contact Details', icon: '📞' },
-    { id: 'hospital-details', label: 'Hospital Details', icon: '🏨' },
-    { id: 'medical-services', label: 'Medical Services', icon: '⚕️' },
-    { id: 'admin', label: 'Administrator Details', icon: '👤' },
-    { id: 'security', label: 'Account Security', icon: '🔐' }
+    { id: 'hospital-info', label: 'Hospital Information', icon: '🏥', shortLabel: 'Info' },
+    { id: 'contact', label: 'Contact Details', icon: '📞', shortLabel: 'Contact' },
+    { id: 'hospital-details', label: 'Hospital Details', icon: '🏨', shortLabel: 'Details' },
+    { id: 'medical-services', label: 'Medical Services', icon: '⚕️', shortLabel: 'Services' },
+    { id: 'admin', label: 'Administrator Details', icon: '👤', shortLabel: 'Admin' },
+    { id: 'security', label: 'Account Security', icon: '🔐', shortLabel: 'Security' }
   ]
 
   const handleChange = (e) => {
@@ -648,7 +649,7 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
             </div>
 
             <button type="submit" className="auth-button register-btn" disabled={isLoading}>
-              {isLoading ? 'Registering...' : '✓ Register Hospital'}
+              {isLoading ? '⏳ Registering...' : '✓ Complete Registration'}
             </button>
           </div>
         )
@@ -658,12 +659,23 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
     }
   }
 
+  const currentSectionIndex = sections.findIndex(s => s.id === currentSection)
+  const progressPercentage = ((currentSectionIndex + 1) / sections.length) * 100
+
   return (
     <div className="auth-container">
       <div className="signup-card-wrapper">
         <div className="auth-header">
           <h1>🏥 Hospital Registration</h1>
           <p>Complete all sections to register your hospital</p>
+          <div className="progress-container">
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${progressPercentage}%` }}></div>
+            </div>
+            <div className="progress-text">
+              Step {currentSectionIndex + 1} of {sections.length}: {sections[currentSectionIndex].label}
+            </div>
+          </div>
         </div>
 
         <div className="dashboard-container">
@@ -676,12 +688,17 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
                   type="button"
                   className={`sidebar-item ${
                     currentSection === section.id ? 'active' : ''
+                  } ${
+                    completedSections.includes(section.id) ? 'completed' : ''
                   }`}
                   onClick={() => setCurrentSection(section.id)}
+                  title={section.label}
                 >
                   <span className="sidebar-icon">{section.icon}</span>
                   <span className="sidebar-label">{section.label}</span>
-                  <span className="sidebar-number">{index + 1}</span>
+                  <span className="sidebar-number">
+                    {completedSections.includes(section.id) ? '✓' : index + 1}
+                  </span>
                 </button>
               ))}
             </nav>

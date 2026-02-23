@@ -36,7 +36,7 @@ body {
   width: 100vw !important;
   height: 100vh !important;
   z-index: 0;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: #1a1d23;
 }
 
 .chat-container {
@@ -53,21 +53,17 @@ body {
 }
 
 .chat-header {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(36, 41, 46, 0.95);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
+  border-radius: 8px;
   color: white;
   padding: 2rem;
   text-align: center;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 0 60px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   margin-bottom: 2rem;
   pointer-events: auto;
-  animation: fadeInDown 0.8s ease-out;
   position: relative;
   overflow: hidden;
 }
@@ -79,13 +75,8 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
-  animation: shine 3s infinite;
+  background: transparent;
+  animation: none;
 }
 
 @keyframes shine {
@@ -112,11 +103,7 @@ body {
   margin: 0;
   font-size: 2.2rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #fff 0%, #8b5cf6 50%, #06b6d4 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+  color: #0366d6;
 }
 
 .chat-messages {
@@ -128,10 +115,10 @@ body {
   gap: 1.5rem;
   background: transparent;
   pointer-events: auto;
-  border-radius: 20px;
+  border-radius: 8px;
   margin-bottom: 1.5rem;
   scrollbar-width: thin;
-  scrollbar-color: rgba(139, 92, 246, 0.5) transparent;
+  scrollbar-color: rgba(3, 102, 214, 0.5) transparent;
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -143,12 +130,12 @@ body {
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.5);
+  background: rgba(3, 102, 214, 0.5);
   border-radius: 10px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.7);
+  background: rgba(3, 102, 214, 0.7);
 }
 
 .welcome-message {
@@ -171,7 +158,6 @@ body {
 .message {
   display: flex;
   margin-bottom: 0.5rem;
-  animation: messageSlide 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes messageSlide {
@@ -196,38 +182,33 @@ body {
 .message-content {
   max-width: 75%;
   padding: 1.5rem 2rem;
-  border-radius: 20px;
+  border-radius: 8px;
   line-height: 1.6;
   word-wrap: break-word;
   position: relative;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .message-content:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .message.user .message-content {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(109, 40, 217, 0.9) 100%);
+  background: rgba(3, 102, 214, 0.9);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 
-    0 8px 32px rgba(139, 92, 246, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  border-bottom-right-radius: 6px;
+  box-shadow: 0 2px 8px rgba(3, 102, 214, 0.3);
+  border-bottom-right-radius: 4px;
 }
 
 .message.assistant .message-content {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(36, 41, 46, 0.9);
   color: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  border-bottom-left-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-bottom-left-radius: 4px;
 }
 
 /* Markdown formatting styles */
@@ -235,9 +216,8 @@ body {
   font-size: 1.1rem;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
-  color: #8b5cf6;
+  color: #0366d6;
   font-weight: 600;
-  text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
 }
 
 .message.assistant .message-content h3:first-child {
@@ -263,17 +243,16 @@ body {
 }
 
 .message.assistant .message-content strong {
-  color: #06b6d4;
+  color: #0366d6;
   font-weight: 600;
-  text-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
 }
 
 .message.assistant .message-content code {
-  background: rgba(139, 92, 246, 0.2);
+  background: rgba(3, 102, 214, 0.2);
   padding: 0.3rem 0.6rem;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 0.9em;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  border: 1px solid rgba(3, 102, 214, 0.3);
 }
 
 .typing-indicator {
@@ -288,9 +267,8 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+  background: #0366d6;
   animation: typingBounce 1.4s infinite;
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
 }
 
 .typing-indicator span:nth-child(2) {
@@ -337,17 +315,15 @@ body {
   flex: 1;
   padding: 1.25rem 1.75rem;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
+  border-radius: 8px;
   font-size: 1rem;
   outline: none;
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  background: rgba(36, 41, 46, 0.95);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   color: white;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .chat-input::placeholder {
@@ -355,12 +331,8 @@ body {
 }
 
 .chat-input:focus {
-  border-color: rgba(139, 92, 246, 0.6);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 0 40px rgba(139, 92, 246, 0.4);
-  transform: translateY(-2px);
+  border-color: rgba(3, 102, 214, 0.6);
+  box-shadow: 0 2px 8px rgba(3, 102, 214, 0.3);
 }
 
 .chat-input:disabled {
@@ -371,17 +343,15 @@ body {
 
 .send-button {
   padding: 1.25rem 2.5rem;
-  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  background: #0366d6;
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
+  border: none;
+  border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 
-    0 8px 32px rgba(139, 92, 246, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(3, 102, 214, 0.3);
   position: relative;
   overflow: hidden;
 }
@@ -394,26 +364,22 @@ body {
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: transparent;
   transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+  transition: none;
 }
 
 .send-button:hover::before {
-  width: 300px;
-  height: 300px;
+  width: 0;
+  height: 0;
 }
 
 .send-button:hover:not(:disabled) {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 
-    0 12px 40px rgba(139, 92, 246, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    0 0 60px rgba(139, 92, 246, 0.4);
+  background: #0256c0;
 }
 
 .send-button:active:not(:disabled) {
-  transform: translateY(-2px) scale(1.02);
+  background: #024ea4;
 }
 
 .send-button:disabled {
@@ -431,17 +397,16 @@ body {
   width: calc(100% - 4rem);
   margin: 1rem 2rem 0;
   padding: 1.25rem 2rem;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #0366d6;
   border: none;
-  border-radius: 16px;
+  border-radius: 8px;
   color: white;
   font-size: 1.05rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(3, 102, 214, 0.3);
   pointer-events: auto;
-  animation: fadeInUp 0.5s ease-out;
   position: relative;
   overflow: hidden;
 }
@@ -453,32 +418,25 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
-  transition: left 0.5s ease;
+  background: transparent;
+  transition: none;
 }
 
 .nearby-hospitals-button:hover::before {
-  left: 100%;
+  left: -100%;
 }
 
 .nearby-hospitals-button:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.6);
+  background: #0256c0;
 }
 
 .nearby-hospitals-button:active {
-  transform: translateY(-2px);
+  background: #024ea4;
 }
 
 .nearby-hospitals-button svg {
   width: 24px;
   height: 24px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 @keyframes fadeInUp {
@@ -500,7 +458,7 @@ body {
   
   .chat-header {
     padding: 1.5rem;
-    border-radius: 16px;
+    border-radius: 8px;
   }
   
   .chat-header h1 {
@@ -542,31 +500,25 @@ body {
 
 .find-hospitals-btn {
   padding: 1.25rem 2.5rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: #28a745;
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
+  border: none;
+  border-radius: 8px;
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 
-    0 8px 32px rgba(16, 185, 129, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
   position: relative;
   overflow: hidden;
 }
 
 .find-hospitals-btn:hover {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 
-    0 12px 40px rgba(16, 185, 129, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    0 0 60px rgba(16, 185, 129, 0.4);
+  background: #218838;
 }
 
 .find-hospitals-btn:active {
-  transform: translateY(-2px) scale(1.02);
+  background: #1e7e34;
 }
 
 .location-error {
@@ -575,28 +527,24 @@ body {
   padding: 0.75rem;
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 10px;
+  border-radius: 6px;
   font-size: 0.9rem;
 }
 
 .hospitals-container {
   margin: 2rem 0;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(36, 41, 46, 0.8);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  animation: fadeInUp 0.6s ease-out;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .hospitals-title {
-  color: #10b981;
+  color: #28a745;
   font-size: 1.5rem;
   margin-bottom: 1rem;
-  text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
 }
 
 .location-info {
@@ -605,7 +553,7 @@ body {
   margin-bottom: 1.5rem;
   padding: 0.75rem;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -617,20 +565,17 @@ body {
 
 .hospital-card {
   padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(36, 41, 46, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .hospital-card:hover {
-  transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(16, 185, 129, 0.5);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    0 0 30px rgba(16, 185, 129, 0.2);
+  background: rgba(36, 41, 46, 0.95);
+  border-color: rgba(40, 167, 69, 0.5);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
 }
 
 .hospital-header {
@@ -650,8 +595,8 @@ body {
 
 .hospital-type {
   padding: 0.4rem 0.8rem;
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-  border-radius: 8px;
+  background: #0366d6;
+  border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 600;
   color: white;
@@ -673,29 +618,26 @@ body {
 .hospital-link {
   display: inline-block;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  background: #0366d6;
   color: white;
   text-decoration: none;
-  border-radius: 10px;
+  border-radius: 6px;
   font-weight: 600;
   font-size: 0.95rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3);
+  transition: all 0.2s ease;
 }
 
 .hospital-link:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(6, 182, 212, 0.5);
-  background: linear-gradient(135deg, #0891b2, #06b6d4);
+  background: #0256c0;
 }
 
 .no-hospitals {
   text-align: center;
   padding: 2rem;
   color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(36, 41, 46, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  border-radius: 8px;
   margin: 1rem 0;
 }
 
@@ -703,10 +645,10 @@ body {
 .emergency-alert {
   margin: 1.5rem 0;
   padding: 1.5rem 2rem;
-  border-radius: 16px;
+  border-radius: 8px;
   text-align: center;
-  animation: emergencyPulse 2s ease-in-out infinite, fadeInUp 0.5s ease-out;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  animation: emergencyPulse 2s ease-in-out infinite;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   position: relative;
@@ -723,13 +665,8 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
-  animation: emergencyShine 3s infinite;
+  background: transparent;
+  animation: none;
 }
 
 @keyframes emergencyShine {
@@ -808,17 +745,15 @@ body {
 
 .emergency-hospitals-btn {
   padding: 1rem 2rem;
-  background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
+  background: white;
   color: #dc2626;
-  border: none;
-  border-radius: 16px;
+  border: 2px solid #dc2626;
+  border-radius: 6px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 2px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   position: relative;
   z-index: 1;
   flex: 0 1 auto;
@@ -826,32 +761,26 @@ body {
 }
 
 .emergency-hospitals-btn:hover {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.6),
-    inset 0 2px 0 rgba(255, 255, 255, 1),
-    0 0 40px rgba(255, 255, 255, 0.5);
+  background: #f3f4f6;
 }
 
 .emergency-hospitals-btn:active {
-  transform: translateY(-2px) scale(1.02);
+  background: #e5e7eb;
 }
 
 .call-911-btn {
   display: inline-block;
   padding: 1rem 2rem;
-  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  background: #15803d;
   color: white;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-radius: 16px;
+  border: none;
+  border-radius: 6px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 
-    0 8px 32px rgba(21, 128, 61, 0.6),
-    inset 0 2px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(21, 128, 61, 0.3);
   position: relative;
   z-index: 1;
   flex: 0 1 auto;
@@ -859,15 +788,11 @@ body {
 }
 
 .call-911-btn:hover {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 
-    0 12px 40px rgba(21, 128, 61, 0.8),
-    inset 0 2px 0 rgba(255, 255, 255, 0.4),
-    0 0 40px rgba(34, 197, 94, 0.5);
+  background: #166534;
 }
 
 .call-911-btn:active {
-  transform: translateY(-2px) scale(1.02);
+  background: #14532d;
 }
 
 /* Responsive Emergency Alerts */
