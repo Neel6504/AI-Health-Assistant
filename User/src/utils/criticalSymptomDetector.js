@@ -1,6 +1,12 @@
 /**
  * Critical Symptom Detection System
  * Detects life-threatening conditions that require immediate medical attention
+ * 
+ * Updated: Feb 2026 - Enhanced to reduce false positives
+ * - Made keywords more specific (e.g., "cannot breathe" vs "difficulty breathing")
+ * - Added non-emergency symptom filtering to reduce false alarms for common symptoms
+ * - Improved detection logic to avoid triggering on mild fever, minor vomiting, etc.
+ * - Only triggers emergency alerts for genuinely serious symptom combinations
  */
 
 // Critical conditions that require immediate emergency care
@@ -11,9 +17,13 @@ const CRITICAL_CONDITIONS = {
       'heart attack',
       'myocardial infarction',
       'acute coronary syndrome',
-      'chest pain radiating',
+      'chest pain radiating to arm',
+      'chest pain radiating to jaw',
       'crushing chest pain',
-      'severe chest pressure'
+      'severe chest pressure',
+      'chest pain with shortness of breath',
+      'chest pain with nausea',
+      'chest pain with sweating'
     ],
     severity: 'EMERGENCY',
     warning: '🚨 EMERGENCY: Possible heart attack symptoms detected!'
@@ -46,19 +56,22 @@ const CRITICAL_CONDITIONS = {
     warning: '🚨 EMERGENCY: Possible pulmonary embolism detected!'
   },
   
-  // Severe respiratory
+  // Severe respiratory (only true breathing emergencies)
   severeRespiratory: {
     keywords: [
-      'difficulty breathing',
-      'cannot breathe',
-      'severe breathlessness',
-      'respiratory distress',
+      'cannot breathe at all',
+      'unable to breathe properly',
       'gasping for air',
       'blue lips',
-      'cyanosis'
+      'blue fingernails',
+      'cyanosis',
+      'choking and cannot breathe',
+      'suffocating',
+      'respiratory arrest',
+      'stopped breathing'
     ],
     severity: 'EMERGENCY',
-    warning: '⚠️ CRITICAL: Severe breathing difficulty detected!'
+    warning: '⚠️ CRITICAL: Severe breathing emergency detected!'
   },
   
   // Cancer indicators (high urgency but not immediate emergency)
@@ -80,23 +93,28 @@ const CRITICAL_CONDITIONS = {
     keywords: [
       'internal bleeding',
       'vomiting blood',
+      'throwing up blood',
       'hematemesis',
+      'blood in vomit',
+      'bloody vomit',
       'blood in stool',
+      'black tarry stool',
       'melena',
-      'severe abdominal pain'
+      'severe abdominal pain with bleeding',
+      'severe stomach pain with blood'
     ],
     severity: 'EMERGENCY',
     warning: '🚨 EMERGENCY: Possible internal bleeding detected!'
   },
   
-  // Severe infections
+  // Severe infections (only very specific combinations)
   sepsis: {
     keywords: [
       'sepsis',
       'septic shock',
-      'severe infection',
-      'rapid heartbeat with fever',
-      'confusion with fever'
+      'fever with confusion and low blood pressure',
+      'fever with altered mental state and rapid heart rate',
+      'fever over 104 with confusion'
     ],
     severity: 'EMERGENCY',
     warning: '🚨 EMERGENCY: Possible severe infection/sepsis!'
@@ -180,6 +198,97 @@ const CRITICAL_CONDITIONS = {
   }
 }
 
+// Common non-emergency symptoms that should NOT trigger emergency alerts
+const NON_EMERGENCY_INDICATORS = [
+  'fever',
+  'mild fever',
+  'low grade fever',
+  'slight fever',
+  'temperature',
+  'headache',
+  'minor headache',
+  'mild headache',
+  'common cold',
+  'flu symptoms',
+  'flu',
+  'nausea',
+  'mild nausea',
+  'slight nausea',
+  'stomach upset',
+  'stomach ache',
+  'minor stomach ache',
+  'mild stomach pain',
+  'food poisoning',
+  'vomiting',
+  'mild vomiting',
+  'throwing up',
+  'dizziness',
+  'slight dizziness',
+  'mild fatigue',
+  'tired',
+  'runny nose',
+  'stuffy nose',
+  'sore throat',
+  'cough',
+  'mild cough',
+  'chest discomfort',
+  'mild chest discomfort',
+  'slight chest pain',
+  'minor chest pain',
+  'chest muscle pain',
+  'chest wall pain',
+  'difficulty breathing',
+  'shortness of breath',
+  'short of breath',
+  'breathing problem',
+  'breathing difficulty'
+]
+
+/**
+ * Check if message contains indicators of non-emergency conditions
+ * @param {string} message 
+ * @returns {boolean}
+ */
+function hasNonEmergencyIndicators(message) {
+  const lowerMessage = message.toLowerCase()
+  return NON_EMERGENCY_INDICATORS.some(indicator => 
+    lowerMessage.includes(indicator.toLowerCase())
+  )
+}
+
+/**
+ * Check if the symptoms describe truly critical emergency conditions
+ * @param {string} message 
+ * @param {string} keyword 
+ * @returns {boolean}
+ */
+function isTrulyEmergent(message, keyword) {
+  const lowerMessage = message.toLowerCase()
+  
+  // Very specific emergency phrases that override non-emergency indicators
+  const trulyEmergentPhrases = [
+    'heart attack',
+    'stroke',
+    'cannot breathe at all',
+    'stopped breathing',
+    'unconscious',
+    'loss of consciousness',
+    'severe bleeding',
+    'vomiting blood',
+    'blood in vomit',
+    'crushing chest pain',
+    'chest pain radiating',
+    'blue lips',
+    'choking',
+    'anaphylaxis',
+    'anaphylactic',
+    'sepsis',
+    'septic shock'
+  ]
+  
+  return trulyEmergentPhrases.some(phrase => lowerMessage.includes(phrase))
+}
+
 /**
  * Detect if the message contains critical symptoms
  * @param {string} message - The message to analyze (from AI or user)
@@ -190,10 +299,20 @@ export function detectCriticalSymptoms(message) {
   
   const lowerMessage = message.toLowerCase()
   
+  // First check for non-emergency indicators - if found, reduce sensitivity
+  const hasNonEmergency = hasNonEmergencyIndicators(message)
+  
   // Check each critical condition
   for (const [conditionKey, condition] of Object.entries(CRITICAL_CONDITIONS)) {
     for (const keyword of condition.keywords) {
       if (lowerMessage.includes(keyword.toLowerCase())) {
+        // If non-emergency indicators are present, only trigger for truly emergent conditions
+        if (hasNonEmergency) {
+          if (!isTrulyEmergent(message, keyword)) {
+            continue // Skip this match - likely common symptom, not emergency
+          }
+        }
+        
         return {
           condition: conditionKey,
           severity: condition.severity,

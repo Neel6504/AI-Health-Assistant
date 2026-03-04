@@ -6,21 +6,30 @@ The AI Health Assistant now includes an **Emergency Symptom Detection System** t
 ## How It Works
 
 ### 1. Critical Symptom Detection
-The system monitors both user input and AI responses for dangerous symptoms including:
+The system monitors both user input and AI responses for dangerous symptoms, using **intelligent filtering** to avoid false alarms from common symptoms.
 
 #### **EMERGENCY Level (Requires Immediate 911 Call)**
-- **Heart Attack**: chest pain, crushing chest pain, pain radiating to arm/jaw
+- **Heart Attack**: severe crushing chest pain, chest pain radiating to arm/jaw, chest pain with shortness of breath
 - **Stroke**: facial drooping, sudden weakness, slurred speech, severe headache
 - **Pulmonary Embolism**: sudden shortness of breath, coughing blood
-- **Severe Respiratory Distress**: difficulty breathing, gasping, blue lips
-- **Internal Bleeding**: vomiting blood, blood in stool, severe abdominal pain
-- **Sepsis/Severe Infection**: fever with confusion, septic shock
+- **Severe Respiratory Distress**: cannot breathe, gasping for air, blue lips, choking
+- **Internal Bleeding**: vomiting blood, blood in stool, severe abdominal pain with bleeding
+- **Sepsis/Severe Infection**: high fever with confusion, fever over 103°F, septic shock
 - **Anaphylaxis**: severe allergic reaction, throat swelling
 - **Severe Trauma**: major injuries, loss of consciousness
 - **Seizures**: uncontrolled convulsions
 - **Diabetic Emergency**: diabetic ketoacidosis, diabetic coma
 - **Pregnancy Emergency**: severe bleeding, ectopic pregnancy
 - **Mental Health Crisis**: suicidal thoughts, self-harm ideation
+
+#### **Smart Filtering to Prevent False Alarms**
+The system now **intelligently filters out** common, non-emergency symptoms to prevent false alarms:
+- ✅ **"Vomiting blood"** → Emergency alert
+- ❌ **"Mild vomiting"** → No alert (normal symptom)
+- ✅ **"Cannot breathe"** → Emergency alert  
+- ❌ **"Slight difficulty breathing"** → No alert (may be minor)
+- ✅ **"High fever with confusion"** → Emergency alert
+- ❌ **"Mild fever"** → No alert (common symptom)
 
 #### **URGENT Level (Requires Prompt Medical Attention)**
 - **Cancer**: symptoms strongly suggesting cancer or tumor
@@ -128,11 +137,13 @@ The system monitors for 200+ keywords across 13 categories:
 
 ## Safety Features
 
-1. **No False Negatives**: Broad keyword matching to catch variations
-2. **Dual Detection**: Checks both user input AND AI responses
-3. **Immediate Action**: Emergency alerts appear within 500ms
-4. **Clear Instructions**: Simple, actionable guidance
-5. **One-Click Help**: Direct links to emergency services
+1. **Intelligent Filtering**: Avoids false alarms by recognizing common non-emergency symptoms
+2. **Specific Keywords**: Uses precise medical terms to reduce false positives
+3. **Context Awareness**: Considers symptom combinations rather than isolated symptoms
+4. **Dual Detection**: Checks both user input AND AI responses
+5. **Immediate Action**: Emergency alerts appear within 500ms
+6. **Clear Instructions**: Simple, actionable guidance
+7. **One-Click Help**: Direct links to emergency services
 
 ## Customization
 

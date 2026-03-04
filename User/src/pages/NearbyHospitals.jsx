@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Loader from '../components/Loader'
-import { getUserLocation, findNearbyHospitals } from '../services/locationService'
+import { getUserLocation, findHospitalsFromDatabase, getAllHospitalsWithLocation } from '../services/locationService'
 import './NearbyHospitals.css'
 
 function NearbyHospitals() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
   const [hospitals, setHospitals] = useState([])
+  const [allHospitals, setAllHospitals] = useState([])
   const [userLocation, setUserLocation] = useState(null)
   const [locationError, setLocationError] = useState(null)
   const [selectedHospital, setSelectedHospital] = useState(null)
   const [dataSource, setDataSource] = useState(null)
+  const [activeTab, setActiveTab] = useState('nearby') // 'nearby' or 'all'
+  const [allHospitalsLoaded, setAllHospitalsLoaded] = useState(false)
 
   useEffect(() => {
     initializeLocation()
@@ -43,39 +46,66 @@ function NearbyHospitals() {
   }
 
   /**
-   * Fetch nearby hospitals using location services
+   * Fetch all hospitals from database
+   */
+  const fetchAllHospitals = async () => {
+    if (allHospitalsLoaded) return // Don't fetch again if already loaded
+    
+    try {
+      setIsLoading(true)
+      console.log('Fetching all hospitals from database...')
+      
+      const result = await getAllHospitalsWithLocation(userLocation)
+      
+      console.log(`Found ${result.hospitals.length} total hospitals from database`)
+      setAllHospitals(result.hospitals)
+      setAllHospitalsLoaded(true)
+      
+    } catch (error) {
+      console.error('Error fetching all hospitals:', error)
+      setLocationError('Unable to load all hospitals. Please check your connection and try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  /**
+   * Handle tab switch between nearby and all hospitals
+   */
+  const handleTabSwitch = (tab) => {
+    setActiveTab(tab)
+    
+    if (tab === 'all' && !allHospitalsLoaded) {
+      fetchAllHospitals()
+    }
+  }
+
+  /**
+   * Fetch nearby hospitals using ONLY database (location-based)
    */
   const fetchHospitals = async (location) => {
     try {
       setIsLoading(true)
       
-      // Optional: Add your Google Places API key here for better results
-      // Get it from: https://console.cloud.google.com/apis/credentials
-      const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY || null
+      console.log('Fetching nearby hospitals from database only...')
       
-      if (GOOGLE_API_KEY) {
-        console.log('Using Google Places API (preferred method)')
-      } else {
-        console.log('Using OpenStreetMap (no Google API key found)')
-      }
+      // Use ONLY database for nearby hospitals (within 5km radius)
+      const hospitals = await findHospitalsFromDatabase(location, 5)
       
-      // Find nearby hospitals (tries Google first, falls back to OSM)
-      const result = await findNearbyHospitals(location, GOOGLE_API_KEY)
+      console.log(`Found ${hospitals.length} nearby hospitals from database`)
+      setDataSource('database')
       
-      console.log(`Found ${result.hospitals.length} hospitals using ${result.source}`)
-      setDataSource(result.source)
-      
-      if (result.hospitals.length > 0) {
-        setHospitals(result.hospitals)
+      if (hospitals.length > 0) {
+        setHospitals(hospitals)
         setLocationError(null)
       } else {
         setHospitals([])
-        setLocationError('No hospitals found within 5km of your location. Try searching on Google Maps.')
+        setLocationError('No hospitals found within 5km in our database. Try viewing "All Hospitals" tab to see all registered hospitals.')
       }
       
     } catch (error) {
-      console.error('Error fetching hospitals:', error)
-      setLocationError('Unable to search for hospitals. Please check your internet connection and try again.')
+      console.error('Error fetching nearby hospitals from database:', error)
+      setLocationError('Unable to search for nearby hospitals in database. Please check your internet connection and try again.')
       setHospitals([])
     } finally {
       setIsLoading(false)
@@ -120,8 +150,11 @@ function NearbyHospitals() {
 
   if (isLoading) {
     return <Loader 
-      message="Finding Nearby Hospitals" 
-      subtitle="Getting your location and searching for hospitals within 5km..."
+      message={activeTab === 'nearby' ? "Finding Nearby Hospitals" : "Loading All Hospitals"} 
+      subtitle={activeTab === 'nearby' 
+        ? "Getting your location and searching for hospitals within 5km..."
+        : "Fetching hospitals from our database..."
+      }
     />
   }
 
@@ -136,20 +169,38 @@ function NearbyHospitals() {
           Back
         </button>
         <div className="header-content">
-          <h1>🏥 Nearby Hospitals</h1>
+          <h1>🏥 Hospitals</h1>
+          
+          {/* Tab Navigation */}
+          <div className="tab-navigation">
+            <button 
+              className={`tab-button ${activeTab === 'nearby' ? 'active' : ''}`}
+              onClick={() => handleTabSwitch('nearby')}
+            >
+              📍 Nearby Hospitals
+              {hospitals.length > 0 && <span className="tab-count">({hospitals.length})</span>}
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'all' ? 'active' : ''}`}
+              onClick={() => handleTabSwitch('all')}
+            >
+              🏥 All Hospitals
+              {allHospitals.length > 0 && <span className="tab-count">({allHospitals.length})</span>}
+            </button>
+          </div>
+
           <p>
-            {userLocation 
-              ? `Found ${hospitals.length} hospital${hospitals.length !== 1 ? 's' : ''} within 5km`
-              : 'Searching for hospitals near you'
+            {activeTab === 'nearby' 
+              ? (userLocation 
+                  ? `Found ${hospitals.length} hospital${hospitals.length !== 1 ? 's' : ''} within 5km`
+                  : 'Searching for hospitals near you'
+                )
+              : `Showing ${allHospitals.length} hospital${allHospitals.length !== 1 ? 's' : ''} from our database`
             }
           </p>
-          {dataSource && (
+          {dataSource && activeTab === 'nearby' && (
             <small style={{ opacity: 0.7, fontSize: '0.85em' }}>
-              {dataSource === 'database' 
-                ? '🏥 Showing registered hospitals from our database' 
-                : dataSource === 'google_places' 
-                ? '📍 Powered by Google Places' 
-                : '🗺️ Powered by OpenStreetMap'}
+              🏥 Showing registered hospitals from our database within 5km radius
             </small>
           )}
         </div>
@@ -200,29 +251,41 @@ function NearbyHospitals() {
       )}
 
       {/* Hospitals Grid */}
-      {hospitals.length > 0 && (
+      {((activeTab === 'nearby' && hospitals.length > 0) || (activeTab === 'all' && allHospitals.length > 0)) && (
         <div className="hospitals-container">
           <div className="hospitals-stats">
             <div className="stat-card">
-              <span className="stat-number">{hospitals.length}</span>
-              <span className="stat-label">Hospitals Found</span>
+              <span className="stat-number">
+                {activeTab === 'nearby' ? hospitals.length : allHospitals.length}
+              </span>
+              <span className="stat-label">
+                {activeTab === 'nearby' ? 'Hospitals Found' : 'Total Hospitals'}
+              </span>
             </div>
             <div className="stat-card">
               <span className="stat-number">
-                {hospitals.filter(h => h.isOpen === true).length}
+                {activeTab === 'nearby' 
+                  ? hospitals.filter(h => h.isOpen === true).length
+                  : allHospitals.filter(h => h.isOpen === true).length
+                }
               </span>
               <span className="stat-label">Open Now</span>
             </div>
             <div className="stat-card">
               <span className="stat-number">
-                {hospitals[0]?.distance ? `${hospitals[0].distance} km` : 'N/A'}
+                {activeTab === 'nearby' 
+                  ? (hospitals[0]?.distance ? `${hospitals[0].distance} km` : 'N/A')
+                  : (allHospitals[0]?.distance ? `${allHospitals[0].distance} km` : 'N/A')
+                }
               </span>
-              <span className="stat-label">Nearest</span>
+              <span className="stat-label">
+                {activeTab === 'nearby' ? 'Nearest' : 'Closest'}
+              </span>
             </div>
           </div>
 
           <div className="hospitals-grid">
-            {hospitals.map((hospital, index) => (
+            {(activeTab === 'nearby' ? hospitals : allHospitals).map((hospital, index) => (
               <div 
                 key={hospital.id} 
                 className={`hospital-card ${selectedHospital?.id === hospital.id ? 'selected' : ''}`}

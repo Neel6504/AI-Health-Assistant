@@ -309,7 +309,7 @@ const extractFacilities = (tags) => {
  */
 export const findHospitalsFromDatabase = async (location, radiusKm = 5) => {
   try {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    const API_URL = 'http://localhost:5000' // Hospital backend port
     
     const response = await fetch(`${API_URL}/api/hospitals/nearby`, {
       method: 'POST',
@@ -368,7 +368,7 @@ export const findHospitalsFromDatabase = async (location, radiusKm = 5) => {
 
 /**
  * Main function to find nearby hospitals
- * Tries database first, falls back to OpenStreetMap if needed
+ * Combines database hospitals with external API results
  */
 export const findNearbyHospitals = async (location, googleApiKey = null) => {
   try {
@@ -376,44 +376,190 @@ export const findNearbyHospitals = async (location, googleApiKey = null) => {
       throw new Error('Invalid coordinates received from geolocation')
     }
     
-    // Try our database first (preferred method)
+    let allHospitals = []
+    let dataSources = []
+    
+    // 1. First, try to get hospitals from our database (nearby)
     try {
-      console.log('Fetching hospitals from database (preferred method)...')
-      const hospitals = await findHospitalsFromDatabase(location, 5)
+      console.log('Fetching nearby hospitals from database...')
+      const dbHospitals = await findHospitalsFromDatabase(location, 10) // 10km radius for nearby
       
-      if (hospitals && hospitals.length > 0) {
-        console.log(`Found ${hospitals.length} hospitals from database`)
-        return {
-          hospitals,
-          source: 'database'
-        }
-      } else {
-        console.log('No hospitals found in database, falling back to OpenStreetMap')
+      if (dbHospitals && dbHospitals.length > 0) {
+        allHospitals = [...allHospitals, ...dbHospitals]
+        dataSources.push('database')
+        console.log(`Found ${dbHospitals.length} hospitals from database`)
       }
     } catch (dbError) {
-      console.warn('Database search failed, falling back to OpenStreetMap:', dbError.message)
+      console.warn('Database search failed:', dbError.message)
     }
     
-    // Fallback to OpenStreetMap Overpass API
-    console.log('Fetching hospitals using OpenStreetMap Overpass API...')
-    const hospitals = await findHospitalsWithOverpass(location)
-    
-    if (hospitals && hospitals.length > 0) {
-      console.log(`Found ${hospitals.length} hospitals using OpenStreetMap`)
-      return {
-        hospitals,
-        source: 'openstreetmap'
+    // 2. Try Google Places API if available
+    if (googleApiKey) {
+      try {
+        console.log('Fetching hospitals using Google Places API...')
+        const googleHospitals = await findHospitalsWithGooglePlaces(location, googleApiKey)
+        
+        // Filter out duplicates based on proximity (within 100m)
+        const filteredGoogleHospitals = googleHospitals.filter(googleHospital => {
+          return !allHospitals.some(existingHospital => {
+            const distance = calculateDistance(
+              existingHospital.lat, existingHospital.lng,
+              googleHospital.lat, googleHospital.lng
+            )
+            return distance < 0.1 // 100 meters
+          })
+        })
+        
+        if (filteredGoogleHospitals.length > 0) {
+          allHospitals = [...allHospitals, ...filteredGoogleHospitals]
+          dataSources.push('google-places')
+          console.log(`Found ${filteredGoogleHospitals.length} additional hospitals from Google Places`)
+        }
+      } catch (googleError) {
+        console.warn('Google Places search failed:', googleError.message)
       }
     }
     
-    // No hospitals found
+    // 3. Fallback to OpenStreetMap if we don't have enough results
+    if (allHospitals.length < 5) {
+      try {
+        console.log('Fetching additional hospitals using OpenStreetMap...')
+        const osmHospitals = await findHospitalsWithOverpass(location)
+        
+        // Filter out duplicates
+        const filteredOsmHospitals = osmHospitals.filter(osmHospital => {
+          return !allHospitals.some(existingHospital => {
+            const distance = calculateDistance(
+              existingHospital.lat, existingHospital.lng,
+              osmHospital.lat, osmHospital.lng
+            )
+            return distance < 0.1 // 100 meters
+          })
+        })
+        
+        if (filteredOsmHospitals.length > 0) {
+          allHospitals = [...allHospitals, ...filteredOsmHospitals]
+          dataSources.push('openstreetmap')
+          console.log(`Found ${filteredOsmHospitals.length} additional hospitals from OpenStreetMap`)
+        }
+      } catch (osmError) {
+        console.warn('OpenStreetMap search failed:', osmError.message)
+      }
+    }
+    
+    // Calculate distances for all hospitals and sort by distance
+    allHospitals = allHospitals.map(hospital => {
+      const distance = calculateDistance(
+        location.lat, location.lng,
+        hospital.lat, hospital.lng
+      )
+      return { ...hospital, distance }
+    }).sort((a, b) => a.distance - b.distance)
+    
+    console.log(`Total found: ${allHospitals.length} hospitals from sources: ${dataSources.join(', ')}`)
+    
     return {
-      hospitals: [],
-      source: 'none'
+      hospitals: allHospitals,
+      source: dataSources.join(' + '),
+      counts: {
+        total: allHospitals.length,
+        database: allHospitals.filter(h => h.source === 'database').length,
+        external: allHospitals.filter(h => h.source !== 'database').length
+      }
     }
     
   } catch (error) {
     console.error('Error finding nearby hospitals:', error)
+    throw error
+  }
+}
+
+/**
+ * Get all hospitals from database (not location-filtered)
+ * @returns {Promise<Array>} - Array of all hospital objects
+ */
+export const getAllHospitalsFromDatabase = async () => {
+  try {
+    const API_URL = 'http://localhost:5000' // Hospital backend port
+    
+    // Fetch all hospitals from database
+    const response = await fetch(`${API_URL}/api/hospitals/`)
+    
+    if (!response.ok) {
+      throw new Error(`Database API error: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    if (!data.success || !data.data) {
+      throw new Error('Invalid response from database')
+    }
+    
+    // Transform database results to match our format
+    const hospitals = data.data.map(hospital => ({
+      id: hospital._id,
+      name: hospital.hospitalName,
+      address: `${hospital.address}, ${hospital.city}, ${hospital.state} - ${hospital.pincode}`,
+      lat: hospital.latitude,
+      lng: hospital.longitude,
+      distance: null, // Will be calculated if user location is available
+      rating: 'N/A',
+      userRatingsTotal: 0,
+      isOpen: true,
+      phone: hospital.phone,
+      email: hospital.email,
+      website: null,
+      emergency: hospital.emergencyAvailable,
+      ambulance: hospital.ambulanceAvailable,
+      hospitalType: hospital.hospitalType,
+      totalBeds: hospital.totalBeds,
+      specializations: hospital.specializations,
+      availableServices: hospital.availableServices,
+      facilities: hospital.availableServices || [],
+      openingHours: null,
+      source: 'database'
+    }))
+
+    console.log(`Found ${hospitals.length} total hospitals in database`)
+    return hospitals
+
+  } catch (error) {
+    console.error('Database fetch all hospitals error:', error)
+    throw error
+  }
+}
+
+/**
+ * Get all hospitals from database with optional location for distance calculation
+ */
+export const getAllHospitalsWithLocation = async (userLocation = null) => {
+  try {
+    console.log('Fetching all hospitals from database...')
+    let allHospitals = await getAllHospitalsFromDatabase()
+    
+    // If user location is available, calculate distances and sort
+    if (userLocation && isValidCoordinates(userLocation.lat, userLocation.lng)) {
+      allHospitals = allHospitals.map(hospital => {
+        const distance = calculateDistance(
+          userLocation.lat, userLocation.lng,
+          hospital.lat, hospital.lng
+        )
+        return { ...hospital, distance }
+      }).sort((a, b) => a.distance - b.distance)
+    }
+    
+    return {
+      hospitals: allHospitals,
+      source: 'database-all',
+      counts: {
+        total: allHospitals.length,
+        database: allHospitals.length,
+        external: 0
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error getting all hospitals:', error)
     throw error
   }
 }
