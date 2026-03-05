@@ -309,7 +309,7 @@ const extractFacilities = (tags) => {
  */
 export const findHospitalsFromDatabase = async (location, radiusKm = 5) => {
   try {
-    const API_URL = 'http://localhost:5000' // Hospital backend port
+    const API_URL = 'http://localhost:3001' // Hospital backend port
     
     const response = await fetch(`${API_URL}/api/hospitals/nearby`, {
       method: 'POST',
@@ -480,7 +480,7 @@ export const findNearbyHospitals = async (location, googleApiKey = null) => {
  */
 export const getAllHospitalsFromDatabase = async () => {
   try {
-    const API_URL = 'http://localhost:5000' // Hospital backend port
+    const API_URL = 'http://localhost:3001' // Hospital backend port
     
     // Fetch all hospitals from database
     const response = await fetch(`${API_URL}/api/hospitals/`)

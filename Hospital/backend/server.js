@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import hospitalRoutes from './routes/hospitalRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -19,15 +21,24 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/hospitals', hospitalRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Root route
 app.get('/', (req, res) => {
   res.json({
     message: 'Hospital Management System API',
-    version: '1.0.0',
+    version: '2.0.0',
     endpoints: {
       hospitals: '/api/hospitals',
       register: 'POST /api/hospitals/register',
+      // Authentication
+      authRegister: 'POST /api/auth/register',
+      authLogin: 'POST /api/auth/login',
+      userProfile: 'GET /api/auth/me',
+      // Chat History
+      chatSessions: '/api/chat/sessions',
+      chatStats: 'GET /api/chat/stats',
       login: 'POST /api/hospitals/login'
     }
   });

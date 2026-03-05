@@ -660,3 +660,230 @@
   color: rgba(255, 255, 255, 0.9);
   margin-right: 0.5rem;
 }
+
+/* Authentication Banner */
+.auth-banner {
+  margin: 1rem 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(155, 89, 182, 0.15));
+  border: 1px solid rgba(52, 152, 219, 0.3);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.1);
+}
+
+.auth-message {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.auth-icon {
+  width: 24px;
+  height: 24px;
+  color: #3498db;
+}
+
+.auth-message h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: white;
+}
+
+.auth-message p {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.auth-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.login-btn {
+  background: rgba(52, 152, 219, 0.2);
+  color: #3498db;
+  border: 1px solid rgba(52, 152, 219, 0.5);
+}
+
+.login-btn:hover {
+  background: rgba(52, 152, 219, 0.3);
+  border-color: #3498db;
+}
+
+.signup-btn {
+  background: #3498db;
+  color: white;
+}
+
+.signup-btn:hover {
+  background: #2980b9;
+}
+
+/* Welcome Banner */
+.welcome-banner {
+  margin: 1rem 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(46, 204, 113, 0.15));
+  border: 1px solid rgba(39, 174, 96, 0.3);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.1);
+}
+
+.welcome-message {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.user-icon {
+  width: 24px;
+  height: 24px;
+  color: #27ae60;
+}
+
+.welcome-message h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: white;
+}
+
+.welcome-message p {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.user-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.dashboard-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(52, 152, 219, 0.2);
+  color: #3498db;
+  border: 1px solid rgba(52, 152, 219, 0.5);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dashboard-btn:hover {
+  background: rgba(52, 152, 219, 0.3);
+  border-color: #3498db;
+}
+
+.dashboard-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.5);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.logout-btn:hover {
+  background: rgba(231, 76, 60, 0.3);
+  border-color: #e74c3c;
+}
+
+.logout-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Responsive Design for Auth Banners */
+@media (max-width: 768px) {
+  .auth-banner,
+  .welcome-banner {
+    margin: 1rem;
+    padding: 1rem;
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .auth-message,
+  .welcome-message {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .auth-buttons {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .user-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .auth-btn,
+  .dashboard-btn,
+  .logout-btn {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-buttons,
+  .user-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .auth-btn,
+  .dashboard-btn,
+  .logout-btn {
+    width: 100%;
+  }
+}

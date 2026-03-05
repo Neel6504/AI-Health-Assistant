@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import AuthModal from '../components/AuthModal'
 import Loader from '../components/Loader'
 import { getUserLocation, findHospitalsFromDatabase, getAllHospitalsWithLocation } from '../services/locationService'
 import './NearbyHospitals.css'
 
 function NearbyHospitals() {
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [hospitals, setHospitals] = useState([])
   const [allHospitals, setAllHospitals] = useState([])
@@ -15,6 +18,10 @@ function NearbyHospitals() {
   const [dataSource, setDataSource] = useState(null)
   const [activeTab, setActiveTab] = useState('nearby') // 'nearby' or 'all'
   const [allHospitalsLoaded, setAllHospitalsLoaded] = useState(false)
+  
+  // Authentication modal state
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authMode, setAuthMode] = useState('login')
 
   useEffect(() => {
     initializeLocation()
@@ -121,8 +128,16 @@ function NearbyHospitals() {
 
   /**
    * Open Google Maps directions from user location to hospital
+   * Requires user authentication
    */
   const getDirections = (hospital) => {
+    // Check if user is authenticated before allowing directions
+    if (!user) {
+      setShowAuthModal(true)
+      setAuthMode('login')
+      return
+    }
+    
     if (!hospital?.lat || !hospital?.lng) return
     if (userLocation?.lat && userLocation?.lng) {
       const url = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${hospital.lat},${hospital.lng}`
@@ -146,6 +161,21 @@ function NearbyHospitals() {
     } else {
       window.open('https://www.google.com/maps/search/hospitals', '_blank')
     }
+  }
+
+  // Authentication handlers
+  const handleShowLogin = () => {
+    setAuthMode('login')
+    setShowAuthModal(true)
+  }
+
+  const handleShowSignup = () => {
+    setAuthMode('signup')
+    setShowAuthModal(true)
+  }
+
+  const handleCloseModal = () => {
+    setShowAuthModal(false)
   }
 
   if (isLoading) {
@@ -212,6 +242,55 @@ function NearbyHospitals() {
           Google Maps
         </button>
       </header>
+
+      {/* Authentication Banner */}
+      {!user ? (
+        <div className="auth-banner">
+          <div className="auth-message">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="auth-icon">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <div>
+              <h3>Save Your Medical Search History</h3>
+              <p>Login or signup to automatically save your hospital searches and medical consultations to your personal dashboard</p>
+            </div>
+          </div>
+          <div className="auth-buttons">
+            <button onClick={handleShowLogin} className="auth-btn login-btn">
+              Login
+            </button>
+            <button onClick={handleShowSignup} className="auth-btn signup-btn">
+              Sign Up
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="welcome-banner">
+          <div className="welcome-message">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="user-icon">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <div>
+              <h3>Welcome back, {user.name}!</h3>
+              <p>Your searches are being saved to your dashboard automatically</p>
+            </div>
+          </div>
+          <div className="user-actions">
+            <button onClick={() => navigate('/dashboard')} className="dashboard-btn">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+              </svg>
+              Dashboard
+            </button>
+            <button onClick={logout} className="logout-btn">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+              </svg>
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Error State */}
       {locationError && (
@@ -469,6 +548,15 @@ function NearbyHospitals() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Authentication Modal */}
+      {showAuthModal && (
+        <AuthModal 
+          mode={authMode}
+          onClose={handleCloseModal}
+          onSwitchMode={(mode) => setAuthMode(mode)}
+        />
       )}
     </div>
   )
