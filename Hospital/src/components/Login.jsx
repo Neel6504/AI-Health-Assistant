@@ -49,7 +49,7 @@ function Login({ onToggleAuth, onLoginSuccess }) {
     setIsLoading(true)
     
     try {
-      const response = await fetch('http://localhost:5000/api/hospitals/login', {
+      const response = await fetch('http://localhost:3001/api/hospitals/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -44,7 +44,18 @@ const protect = async (req, res, next) => {
 // @access  Public
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const {
+      name,
+      email,
+      password,
+      // health profile fields from signup step 2
+      hasDiabetes,
+      hasBloodSugar,
+      bloodType,
+      allergies,
+      medications,
+      conditions
+    } = req.body;
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -56,11 +67,23 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // Build nested preferences.medicalInfo from health fields
+    const medicalInfo = {
+      bloodType: bloodType || '',
+      allergies: Array.isArray(allergies) ? allergies : (allergies ? [allergies] : []),
+      medications: Array.isArray(medications) ? medications : (medications ? [medications] : []),
+      conditions: Array.isArray(conditions) ? conditions : (conditions ? [conditions] : [])
+    };
+    // Store yes/no flags as readable conditions
+    if (hasDiabetes)   medicalInfo.conditions = [...new Set([...medicalInfo.conditions, 'Diabetes'])];
+    if (hasBloodSugar) medicalInfo.conditions = [...new Set([...medicalInfo.conditions, 'Blood Sugar'])];
+
     // Create user
     const user = await User.create({
       name,
       email,
-      password
+      password,
+      preferences: { medicalInfo }
     });
 
     // Update login stats

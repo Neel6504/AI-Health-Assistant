@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import AuthModal from '../components/AuthModal'
+import BookAppointment from '../components/BookAppointment'
 import Loader from '../components/Loader'
 import { getUserLocation, findHospitalsFromDatabase, getAllHospitalsWithLocation } from '../services/locationService'
 import './NearbyHospitals.css'
@@ -22,6 +23,10 @@ function NearbyHospitals() {
   // Authentication modal state
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authMode, setAuthMode] = useState('login')
+
+  // Appointment modal state
+  const [appointmentHospital, setAppointmentHospital] = useState(null)
+  const [appointmentSuccess, setAppointmentSuccess] = useState(null)
 
   useEffect(() => {
     initializeLocation()
@@ -176,6 +181,22 @@ function NearbyHospitals() {
 
   const handleCloseModal = () => {
     setShowAuthModal(false)
+  }
+
+  const handleBookAppointment = (hospital) => {
+    if (!user) {
+      setShowAuthModal(true)
+      setAuthMode('login')
+      return
+    }
+    setAppointmentHospital(hospital)
+  }
+
+  const handleAppointmentSuccess = (appointment) => {
+    setAppointmentHospital(null)
+    setAppointmentSuccess(appointment)
+    // Auto-hide success toast after 5 seconds
+    setTimeout(() => setAppointmentSuccess(null), 5000)
   }
 
   if (isLoading) {
@@ -487,6 +508,21 @@ function NearbyHospitals() {
                 )}
 
                 <div className="hospital-actions">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleBookAppointment(hospital)
+                    }}
+                    className="action-button book"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    Book Appointment
+                  </button>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
@@ -550,12 +586,36 @@ function NearbyHospitals() {
         </div>
       )}
 
+      {/* Appointment Success Toast */}
+      {appointmentSuccess && (
+        <div className="appointment-toast">
+          <span className="appointment-toast-icon">✅</span>
+          <div>
+            <strong>Appointment Booked!</strong>
+            <p>
+              {appointmentSuccess.hospitalName} &mdash;&nbsp;
+              {new Date(appointmentSuccess.appointmentDate).toLocaleDateString()} at {appointmentSuccess.appointmentTime}
+            </p>
+          </div>
+          <button className="appointment-toast-close" onClick={() => setAppointmentSuccess(null)}>✕</button>
+        </div>
+      )}
+
       {/* Authentication Modal */}
       {showAuthModal && (
         <AuthModal 
           mode={authMode}
           onClose={handleCloseModal}
           onSwitchMode={(mode) => setAuthMode(mode)}
+        />
+      )}
+
+      {/* Book Appointment Modal */}
+      {appointmentHospital && (
+        <BookAppointment
+          hospital={appointmentHospital}
+          onClose={() => setAppointmentHospital(null)}
+          onSuccess={handleAppointmentSuccess}
         />
       )}
     </div>

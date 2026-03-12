@@ -200,7 +200,7 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
       hospitalData.latitude = lat
       hospitalData.longitude = lng
       
-      const response = await fetch('http://localhost:5000/api/hospitals/register', {
+      const response = await fetch('http://localhost:3001/api/hospitals/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

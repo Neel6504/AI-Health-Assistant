@@ -5,6 +5,7 @@ import connectDB from './config/db.js';
 import hospitalRoutes from './routes/hospitalRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import appointmentRoutes from './routes/appointmentRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -23,6 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/hospitals', hospitalRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/appointments', appointmentRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -39,7 +41,10 @@ app.get('/', (req, res) => {
       // Chat History
       chatSessions: '/api/chat/sessions',
       chatStats: 'GET /api/chat/stats',
-      login: 'POST /api/hospitals/login'
+      login: 'POST /api/hospitals/login',
+      // Appointments
+      bookAppointment: 'POST /api/appointments',
+      myAppointments: 'GET /api/appointments'
     }
   });
 });
