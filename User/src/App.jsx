@@ -304,6 +304,8 @@ function App() {
   const [dashboardStats, setDashboardStats] = useState(null)
   const [recentSessions, setRecentSessions] = useState([])
   const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [selectedChatSession, setSelectedChatSession] = useState(null)
+  const [chatSessionLoading, setChatSessionLoading] = useState(false)
   
   // Chat session management
   const [currentSession, setCurrentSession] = useState(null)
@@ -509,6 +511,25 @@ function App() {
   const refreshDashboard = async () => {
     if (user && token) {
       await fetchDashboardData()
+    }
+  }
+
+  // Open a past session's full chat
+  const openChatSession = async (sessionId) => {
+    setChatSessionLoading(true)
+    setSelectedChatSession({ sessionId, messages: [], loading: true })
+    try {
+      const res = await fetch(`${API_URL}/sessions/${sessionId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSelectedChatSession(data.session)
+      }
+    } catch (err) {
+      console.error('Error fetching session:', err)
+    } finally {
+      setChatSessionLoading(false)
     }
   }
 
@@ -1028,14 +1049,16 @@ function App() {
                     <div className="sessions-list-inline">
                       {recentSessions.map((session, index) => {
                         // Use structured medical data instead of conversation snippets
-                        const symptoms = session.reportedSymptoms?.length > 0 
-                          ? session.reportedSymptoms.join(', ') 
-                          : session.messages?.find(m => m.sender === 'user')?.content?.substring(0, 60) + '...' || 'Medical consultation';
-                        const diagnosis = session.finalDiagnosis || session.aiConclusion || 
-                          session.messages?.find(m => m.sender === 'ai' && isDiagnosisComplete(m.content))?.content?.substring(0, 100) + '...' || 'Assessment in progress';
+                        const userContent = session.messages?.find(m => m.sender === 'user')?.content;
+                        const symptoms = session.reportedSymptoms?.length > 0
+                          ? session.reportedSymptoms.join(', ')
+                          : userContent ? userContent.substring(0, 60) + '...' : 'Medical consultation';
+                        const aiContent = session.messages?.find(m => m.sender === 'ai' && isDiagnosisComplete(m.content))?.content;
+                        const diagnosis = session.finalDiagnosis || session.aiConclusion ||
+                          (aiContent ? aiContent.substring(0, 100) + '...' : 'Assessment in progress');
                         
                         return (
-                          <div key={session._id} className="session-item-inline">
+                          <div key={session._id} className="session-item-inline" onClick={() => openChatSession(session.sessionId)}>
                             <div className="session-header">
                               <div className={`priority-indicator ${session.emergencyLevel || 'normal'}`}></div>
                             </div>
@@ -1090,6 +1113,10 @@ function App() {
                                     Hospital searched
                                   </span>
                                 )}
+                                <span className="stat-item view-chat">
+                                  <span className="stat-icon">💬</span>
+                                  View Chat →
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -1125,6 +1152,47 @@ function App() {
           </div>
         )}
         </>
+
+        {/* Chat History Viewer Modal */}
+        {selectedChatSession && (
+          <div className="chat-viewer-overlay" onClick={() => setSelectedChatSession(null)}>
+            <div className="chat-viewer-modal" onClick={e => e.stopPropagation()}>
+              <div className="chat-viewer-header">
+                <div className="chat-viewer-title">
+                  <span>💬</span>
+                  <h3>{selectedChatSession.title || 'Medical Consultation'}</h3>
+                  {selectedChatSession.createdAt && (
+                    <span className="chat-viewer-date">{new Date(selectedChatSession.createdAt).toLocaleString()}</span>
+                  )}
+                </div>
+                <button className="chat-viewer-close" onClick={() => setSelectedChatSession(null)}>✕</button>
+              </div>
+              <div className="chat-viewer-body">
+                {chatSessionLoading || selectedChatSession.loading ? (
+                  <div className="chat-viewer-loading">
+                    <div className="loading-spinner-small"></div>
+                    <p>Loading conversation...</p>
+                  </div>
+                ) : selectedChatSession.messages?.length > 0 ? (
+                  selectedChatSession.messages.map((msg, i) => (
+                    <div key={i} className={`chat-viewer-msg ${msg.sender}`}>
+                      <div className="chat-viewer-msg-label">
+                        {msg.sender === 'user' ? '🧑 You' : '🤖 AI Assistant'}
+                      </div>
+                      <div className="chat-viewer-msg-content">
+                        {msg.sender === 'ai' ? (
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        ) : msg.content}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="chat-viewer-empty">No messages found for this session.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="chat-messages">
           {messages.map((message, index) => {
