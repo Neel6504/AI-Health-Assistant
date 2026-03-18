@@ -50,10 +50,25 @@
 
 /* ── Body (two columns) ─────────────────────────────── */
 .dashboard-body {
-  display: flex;
+  display: grid;
+  grid-template-columns: 400px 1fr;
   flex: 1;
   overflow: hidden;
   height: calc(100vh - 65px);
+}
+
+.main-content {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.chat-wrapper {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+  background: #f6f8fa;
+  border-left: 1px solid #e1e4e8;
 }
 
 /* ── Left list panel ────────────────────────────────── */
@@ -186,13 +201,12 @@
   border: 1px solid;
 }
 
-/* ── Right detail panel ─────────────────────────────── */
-.detail-wrapper {
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  overflow: hidden;
   flex: 1;
-  overflow-y: auto;
-  background: #f6f8fa;
-  display: flex;
-  flex-direction: column;
 }
 
 .detail-placeholder {
@@ -276,6 +290,13 @@
 .status-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Chat section */
+.chat-wrapper {
+  padding: 1.5rem;
+  overflow-y: auto;
+  background: #f6f8fa;
+  border-left: 1px solid #e1e4e8;
+}
+
 .chat-section { }
 .chat-note {
   font-size: 0.8rem;
@@ -291,7 +312,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-height: 420px;
+  max-height: 610px;
   overflow-y: auto;
   padding-right: 4px;
 }

@@ -47,6 +47,16 @@ function Login({ onSwitchToSignup, onClose, onSuccess }) {
 
   return (
     <div className="auth-form-container">
+      <button 
+        className="auth-modal-close"
+        onClick={onClose}
+        aria-label="Close"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
       <div className="auth-header">
         <h2>Welcome Back</h2>
         <p>Sign in to access your medical consultation history</p>

@@ -162,27 +162,7 @@ function AppointmentDetail({ appt, onClose, onStatusChange }) {
       )}
 
       {/* AI Chat Context */}
-      {appt.chatContext && appt.chatContext.length > 0 ? (
-        <section className="detail-section chat-section">
-          <h3>💬 AI Health Chat ({appt.chatContext.length} messages)</h3>
-          <p className="chat-note">Chat submitted by patient at booking time for doctor reference.</p>
-          <div className="chat-thread">
-            {[...appt.chatContext]
-              .sort((a, b) => {
-                const tDiff = new Date(a.timestamp) - new Date(b.timestamp);
-                if (tDiff !== 0) return tDiff;
-                return (a._id || '') < (b._id || '') ? -1 : 1;
-              })
-              .map((msg, i) => <ChatBubble key={i} msg={msg} />)
-            }
-          </div>
-        </section>
-      ) : (
-        <section className="detail-section">
-          <h3>💬 AI Health Chat</h3>
-          <p className="empty-note">No chat history was attached to this appointment.</p>
-        </section>
-      )}
+      
     </div>
   )
 }
@@ -242,6 +222,7 @@ function Dashboard({ onLogout }) {
 
   return (
     <div className="dashboard-container">
+      {/* ... header ... */}
       <div className="dashboard-header">
         <div className="header-left">
           <h1>🏥 {hospitalName}</h1>
@@ -254,9 +235,8 @@ function Dashboard({ onLogout }) {
       </div>
 
       <div className="dashboard-body">
-        {/* Left: list panel */}
         <div className="list-panel">
-          {/* Stats row */}
+          {/* ... stats, filters, list ... */}
           <div className="stats-row">
             <div className="stat-box"><span className="stat-n">{stats.total}</span><span>Total</span></div>
             <div className="stat-box pending"><span className="stat-n">{stats.pending}</span><span>Pending</span></div>
@@ -321,14 +301,40 @@ function Dashboard({ onLogout }) {
           )}
         </div>
 
-        {/* Right: detail panel */}
-        <div className={`detail-wrapper ${selected ? 'visible' : ''}`}>
+        <div className={`main-content ${selected ? 'visible' : ''}`}>
           {selected ? (
-            <AppointmentDetail
-              appt={selected}
-              onClose={() => setSelected(null)}
-              onStatusChange={handleStatusChange}
-            />
+            <>
+              <div className="detail-wrapper">
+                <AppointmentDetail
+                  appt={selected}
+                  onClose={() => setSelected(null)}
+                  onStatusChange={handleStatusChange}
+                />
+              </div>
+              <div className="chat-wrapper">
+                {selected.chatContext && selected.chatContext.length > 0 ? (
+                  <section className="detail-section chat-section">
+                    <h3>💬 AI Health Chat ({selected.chatContext.length} messages)</h3>
+                    <p className="chat-note">Chat submitted by patient at booking time for doctor reference.</p>
+                    <div className="chat-thread">
+                      {[...selected.chatContext]
+                        .sort((a, b) => {
+                          const tDiff = new Date(a.timestamp) - new Date(b.timestamp);
+                          if (tDiff !== 0) return tDiff;
+                          return (a._id || '') < (b._id || '') ? -1 : 1;
+                        })
+                        .map((msg, i) => <ChatBubble key={i} msg={msg} />)
+                      }
+                    </div>
+                  </section>
+                ) : (
+                  <section className="detail-section">
+                    <h3>💬 AI Health Chat</h3>
+                    <p className="empty-note">No chat history was attached to this appointment.</p>
+                  </section>
+                )}
+              </div>
+            </>
           ) : (
             <div className="detail-placeholder">
               <span>👈</span>
