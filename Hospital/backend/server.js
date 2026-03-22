@@ -7,8 +7,8 @@ import authRoutes from './routes/authRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from .env file in the current directory
+dotenv.config({ path: './.env' });
 
 // Connect to MongoDB
 connectDB();

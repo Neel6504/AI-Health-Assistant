@@ -1,8 +1,12 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Hospital from '../models/Hospital.js';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
+
+// Quick check to avoid DB operations when disconnected (e.g., bad MONGODB_URI/DNS)
+const isDbConnected = () => mongoose.connection.readyState === 1;
 
 // Middleware to authenticate hospital requests
 export const protectHospital = async (req, res, next) => {
@@ -233,6 +237,13 @@ router.post('/login', async (req, res) => {
 // @access  Public (should be protected in production)
 router.get('/', async (req, res) => {
   try {
+    if (!isDbConnected()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database not connected. Please configure MONGODB_URI and restart the server.'
+      });
+    }
+
     const hospitals = await Hospital.find({}).select('-password');
     
     res.json({
@@ -298,6 +309,13 @@ router.post('/nearby', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Invalid coordinates'
+      });
+    }
+
+    if (!isDbConnected()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database not connected. Please configure MONGODB_URI and restart the server.'
       });
     }
 
