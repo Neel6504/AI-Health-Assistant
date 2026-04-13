@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import AuthModal from '../components/AuthModal'
 import BookAppointment from '../components/BookAppointment'
 import Loader from '../components/Loader'
 import { getUserLocation, findHospitalsFromDatabase, getAllHospitalsWithLocation } from '../services/locationService'
+import enT from '../locales/en/translations'
+import hiT from '../locales/hi/translations'
 import './NearbyHospitals.css'
 
 function NearbyHospitals() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const { language, toggleLanguage } = useLanguage()
+  const t = language === 'hi' ? hiT : enT
   const [isLoading, setIsLoading] = useState(true)
   const [hospitals, setHospitals] = useState([])
   const [allHospitals, setAllHospitals] = useState([])
@@ -75,7 +80,7 @@ function NearbyHospitals() {
       
     } catch (error) {
       console.error('Error fetching all hospitals:', error)
-      setLocationError('Unable to load all hospitals. Please check your connection and try again.')
+      setLocationError(t.nhNoHospitalsError)
     } finally {
       setIsLoading(false)
     }
@@ -112,7 +117,7 @@ function NearbyHospitals() {
         setLocationError(null)
       } else {
         setHospitals([])
-        setLocationError('No hospitals found within 5km in our database. Try viewing "All Hospitals" tab to see all registered hospitals.')
+        setLocationError(t.nhNoHospitalsError)
       }
       
     } catch (error) {
@@ -201,10 +206,10 @@ function NearbyHospitals() {
 
   if (isLoading) {
     return <Loader 
-      message={activeTab === 'nearby' ? "Finding Nearby Hospitals" : "Loading All Hospitals"} 
+      message={activeTab === 'nearby' ? t.nhLoadingNearby : t.nhLoadingAll} 
       subtitle={activeTab === 'nearby' 
-        ? "Getting your location and searching for hospitals within 5km..."
-        : "Fetching hospitals from our database..."
+        ? t.nhLoadingNearbySubtitle
+        : t.nhLoadingAllSubtitle
       }
     />
   }
@@ -217,10 +222,10 @@ function NearbyHospitals() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
-          Back
+          {t.nhBack}
         </button>
         <div className="header-content">
-          <h1>🏥 Hospitals</h1>
+          <h1>{t.nhTitle}</h1>
           
           {/* Tab Navigation */}
           <div className="tab-navigation">
@@ -228,14 +233,14 @@ function NearbyHospitals() {
               className={`tab-button ${activeTab === 'nearby' ? 'active' : ''}`}
               onClick={() => handleTabSwitch('nearby')}
             >
-              📍 Nearby Hospitals
+              {t.nhTabNearby}
               {hospitals.length > 0 && <span className="tab-count">({hospitals.length})</span>}
             </button>
             <button 
               className={`tab-button ${activeTab === 'all' ? 'active' : ''}`}
               onClick={() => handleTabSwitch('all')}
             >
-              🏥 All Hospitals
+              {t.nhTabAll}
               {allHospitals.length > 0 && <span className="tab-count">({allHospitals.length})</span>}
             </button>
           </div>
@@ -243,25 +248,34 @@ function NearbyHospitals() {
           <p>
             {activeTab === 'nearby' 
               ? (userLocation 
-                  ? `Found ${hospitals.length} hospital${hospitals.length !== 1 ? 's' : ''} within 5km`
-                  : 'Searching for hospitals near you'
+                  ? t.nhFoundHospitals(hospitals.length)
+                  : t.nhSearching
                 )
-              : `Showing ${allHospitals.length} hospital${allHospitals.length !== 1 ? 's' : ''} from our database`
+              : t.nhShowingAll(allHospitals.length)
             }
           </p>
           {dataSource && activeTab === 'nearby' && (
             <small style={{ opacity: 0.7, fontSize: '0.85em' }}>
-              🏥 Showing registered hospitals from our database within 5km radius
+              {t.nhRegistered}
             </small>
           )}
         </div>
-        <button onClick={searchOnMaps} className="maps-button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>
-          Google Maps
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button onClick={searchOnMaps} className="maps-button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            {t.nhGoogleMaps}
+          </button>
+          <button
+            onClick={toggleLanguage}
+            className="lang-toggle"
+            title={language === 'en' ? 'Switch to Hindi' : 'Switch to English'}
+          >
+            {language === 'en' ? '🇮🇳 हिं' : '🇬🇧 EN'}
+          </button>
+        </div>
       </header>
 
       {/* Authentication Banner */}
@@ -272,16 +286,16 @@ function NearbyHospitals() {
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
             </svg>
             <div>
-              <h3>Save Your Medical Search History</h3>
-              <p>Login or signup to automatically save your hospital searches and medical consultations to your personal dashboard</p>
+              <h3>{t.nhSaveHistory}</h3>
+              <p>{t.nhLoginPrompt}</p>
             </div>
           </div>
           <div className="auth-buttons">
             <button onClick={handleShowLogin} className="auth-btn login-btn">
-              Login
+              {t.nhLogin}
             </button>
             <button onClick={handleShowSignup} className="auth-btn signup-btn">
-              Sign Up
+              {t.nhSignUp}
             </button>
           </div>
         </div>
@@ -292,8 +306,8 @@ function NearbyHospitals() {
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
             </svg>
             <div>
-              <h3>Welcome back, {user.name}!</h3>
-              <p>Your searches are being saved to your dashboard automatically</p>
+              <h3>{t.nhWelcomeBack(user.name)}</h3>
+              <p>{t.nhSearchesSaved}</p>
             </div>
           </div>
           <div className="user-actions">
@@ -307,7 +321,7 @@ function NearbyHospitals() {
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
               </svg>
-              Logout
+              {t.nhLogout}
             </button>
           </div>
         </div>
@@ -325,10 +339,10 @@ function NearbyHospitals() {
             <p className="error-title">{locationError}</p>
             <div className="error-actions">
               <button onClick={handleRetry} className="retry-button">
-                📍 Retry Location
+                {t.nhRetry}
               </button>
               <button onClick={searchOnMaps} className="maps-fallback-button">
-                🗺️ Search on Maps
+                {t.nhSearchMaps}
               </button>
             </div>
           </div>
@@ -345,7 +359,7 @@ function NearbyHospitals() {
           fontSize: '0.9em',
           color: '#333'
         }}>
-          <strong>📍 Your Location:</strong> {userLocation.lat.toFixed(6)}, {userLocation.lng.toFixed(6)}
+          <strong>{t.nhYourLocation}</strong> {userLocation.lat.toFixed(6)}, {userLocation.lng.toFixed(6)}
           {userLocation.accuracy && ` (±${Math.round(userLocation.accuracy)}m accuracy)`}
         </div>
       )}
@@ -359,7 +373,7 @@ function NearbyHospitals() {
                 {activeTab === 'nearby' ? hospitals.length : allHospitals.length}
               </span>
               <span className="stat-label">
-                {activeTab === 'nearby' ? 'Hospitals Found' : 'Total Hospitals'}
+                {activeTab === 'nearby' ? t.nhHospitalsFound : t.nhTotalHospitals}
               </span>
             </div>
             <div className="stat-card">
@@ -369,7 +383,7 @@ function NearbyHospitals() {
                   : allHospitals.filter(h => h.isOpen === true).length
                 }
               </span>
-              <span className="stat-label">Open Now</span>
+              <span className="stat-label">{t.nhOpenNow}</span>
             </div>
             <div className="stat-card">
               <span className="stat-number">
@@ -379,7 +393,7 @@ function NearbyHospitals() {
                 }
               </span>
               <span className="stat-label">
-                {activeTab === 'nearby' ? 'Nearest' : 'Closest'}
+                {activeTab === 'nearby' ? t.nhNearest : t.nhClosest}
               </span>
             </div>
           </div>
@@ -395,7 +409,7 @@ function NearbyHospitals() {
                   <span className="hospital-rank">#{index + 1}</span>
                   {hospital.isOpen !== null && (
                     <span className={`status-badge ${hospital.isOpen ? 'open' : 'closed'}`}>
-                      {hospital.isOpen ? '🟢 Open' : '🔴 Closed'}
+                      {hospital.isOpen ? t.nhOpen : t.nhClosed}
                     </span>
                   )}
                 </div>
@@ -405,7 +419,7 @@ function NearbyHospitals() {
                 {/* Distance Display - REQUIRED */}
                 {hospital.distance !== undefined && (
                   <p className="hospital-distance">
-                    📏 <strong>{hospital.distance} km</strong> away
+                    📏 <strong>{hospital.distance} km</strong> {t.nhAway}
                   </p>
                 )}
                 
@@ -416,7 +430,7 @@ function NearbyHospitals() {
                 {hospital.rating !== 'N/A' && (
                   <div className="hospital-rating">
                     <span className="rating-stars">⭐ {hospital.rating}</span>
-                    <span className="rating-count">({hospital.userRatingsTotal} reviews)</span>
+                    <span className="rating-count">({hospital.userRatingsTotal} {t.nhReviews})</span>
                   </div>
                 )}
 
@@ -426,30 +440,30 @@ function NearbyHospitals() {
                     {/* Hospital Type & Beds (if from database) */}
                     {(hospital.hospitalType || hospital.totalBeds) && (
                       <div className="details-section">
-                        <h4>🏥 Hospital Information</h4>
-                        {hospital.hospitalType && <p><strong>Type:</strong> {hospital.hospitalType}</p>}
-                        {hospital.totalBeds && <p><strong>Total Beds:</strong> {hospital.totalBeds}</p>}
-                        {hospital.specializations && <p><strong>Specializations:</strong> {hospital.specializations}</p>}
+                        <h4>{t.nhHospitalInfo}</h4>
+                        {hospital.hospitalType && <p><strong>{t.nhType}</strong> {hospital.hospitalType}</p>}
+                        {hospital.totalBeds && <p><strong>{t.nhTotalBeds}</strong> {hospital.totalBeds}</p>}
+                        {hospital.specializations && <p><strong>{t.nhSpecializations}</strong> {hospital.specializations}</p>}
                       </div>
                     )}
 
                     {/* Emergency Services (if from database) */}
                     {(hospital.emergency !== undefined || hospital.ambulance !== undefined) && (
                       <div className="details-section">
-                        <h4>🚨 Emergency Services</h4>
+                        <h4>{t.nhEmergencyServices}</h4>
                         {hospital.emergency !== undefined && (
                           <p>
-                            <strong>Emergency Ward:</strong>{' '}
+                            <strong>{t.nhEmergencyWard}</strong>{' '}
                             <span className={hospital.emergency ? 'text-success' : 'text-danger'}>
-                              {hospital.emergency ? '✅ Available' : '❌ Not Available'}
+                              {hospital.emergency ? t.nhAvailable : t.nhNotAvailable}
                             </span>
                           </p>
                         )}
                         {hospital.ambulance !== undefined && (
                           <p>
-                            <strong>Ambulance Service:</strong>{' '}
+                            <strong>{t.nhAmbulanceService}</strong>{' '}
                             <span className={hospital.ambulance ? 'text-success' : 'text-danger'}>
-                              {hospital.ambulance ? '✅ Available' : '❌ Not Available'}
+                              {hospital.ambulance ? t.nhAvailable : t.nhNotAvailable}
                             </span>
                           </p>
                         )}
@@ -459,7 +473,7 @@ function NearbyHospitals() {
                     {/* Opening Hours */}
                     {hospital.openingHours && (
                       <div className="details-section">
-                        <h4>🕒 Opening Hours</h4>
+                        <h4>{t.nhOpeningHours}</h4>
                         <div className="opening-hours">
                           {typeof hospital.openingHours === 'string' ? (
                             <p>{hospital.openingHours}</p>
@@ -478,15 +492,15 @@ function NearbyHospitals() {
                     {/* Contact Info */}
                     {(hospital.phone !== 'N/A' || hospital.email || hospital.website) && (
                       <div className="details-section">
-                        <h4>📞 Contact Information</h4>
+                        <h4>{t.nhContactInfo}</h4>
                         {hospital.phone !== 'N/A' && (
-                          <p>Phone: <a href={`tel:${hospital.phone}`}>{hospital.phone}</a></p>
+                          <p>{t.nhPhone} <a href={`tel:${hospital.phone}`}>{hospital.phone}</a></p>
                         )}
                         {hospital.email && (
-                          <p>Email: <a href={`mailto:${hospital.email}`}>{hospital.email}</a></p>
+                          <p>{t.nhEmail} <a href={`mailto:${hospital.email}`}>{hospital.email}</a></p>
                         )}
                         {hospital.website && (
-                          <p>Website: <a href={hospital.website} target="_blank" rel="noopener noreferrer">Visit Website</a></p>
+                          <p>{t.nhWebsite} <a href={hospital.website} target="_blank" rel="noopener noreferrer">{t.nhVisitWebsite}</a></p>
                         )}
                       </div>
                     )}
@@ -494,7 +508,7 @@ function NearbyHospitals() {
                     {/* Facilities */}
                     {hospital.facilities && hospital.facilities.length > 0 && (
                       <div className="details-section">
-                        <h4>🏥 Facilities & Services</h4>
+                        <h4>{t.nhFacilities}</h4>
                         <div className="facilities-grid">
                           {hospital.facilities.map((facility, index) => (
                             <span key={index} className="facility-tag">
@@ -521,7 +535,7 @@ function NearbyHospitals() {
                       <line x1="8" y1="2" x2="8" y2="6"/>
                       <line x1="3" y1="10" x2="21" y2="10"/>
                     </svg>
-                    Book Appointment
+                    {t.nhBookAppointment}
                   </button>
                   <button 
                     onClick={(e) => {
@@ -533,7 +547,7 @@ function NearbyHospitals() {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M5 12h14M12 5l7 7-7 7"/>
                     </svg>
-                    Directions
+                    {t.nhDirections}
                   </button>
                   {hospital.phone !== 'N/A' && (
                     <button 
@@ -544,9 +558,9 @@ function NearbyHospitals() {
                       className="action-button secondary"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 714.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 712.11-.45 12.84 12.84 0 002.81.7A2 2 0 0222 16.92z"/>
+                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 714.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 712.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
                       </svg>
-                      Call
+                      {t.nhCall}
                     </button>
                   )}
                   <button 
@@ -561,7 +575,7 @@ function NearbyHospitals() {
                       <line x1="12" y1="16" x2="12" y2="12"/>
                       <line x1="12" y1="8" x2="12.01" y2="8"/>
                     </svg>
-                    {selectedHospital?.id === hospital.id ? 'Hide Details' : 'View Details'}
+                    {selectedHospital?.id === hospital.id ? t.nhHideDetails : t.nhViewDetails}
                   </button>
                 </div>
               </div>
@@ -576,10 +590,10 @@ function NearbyHospitals() {
                 <line x1="9" y1="9" x2="9.01" y2="9"/>
                 <line x1="15" y1="9" x2="15.01" y2="9"/>
               </svg>
-              <h3>No Hospitals Found</h3>
-              <p>Try searching on Google Maps or adjust your location</p>
+              <h3>{t.nhNoHospitals}</h3>
+              <p>{t.nhNoHospitalsDesc}</p>
               <button onClick={searchOnMaps} className="search-maps-button">
-                Search on Google Maps
+                {t.nhSearchGoogleMaps}
               </button>
             </div>
           )}
@@ -591,7 +605,7 @@ function NearbyHospitals() {
         <div className="appointment-toast">
           <span className="appointment-toast-icon">✅</span>
           <div>
-            <strong>Appointment Booked!</strong>
+            <strong>{t.nhAppointmentBooked}</strong>
             <p>
               {appointmentSuccess.hospitalName} &mdash;&nbsp;
               {new Date(appointmentSuccess.appointmentDate).toLocaleDateString()} at {appointmentSuccess.appointmentTime}

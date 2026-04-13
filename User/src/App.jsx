@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
+import { useLanguage } from './contexts/LanguageContext'
 import Login from './components/Login'
 import Signup from './components/Signup'
 import Groq from 'groq-sdk'
@@ -10,6 +11,8 @@ import { OrbitControls, Sphere, MeshDistortMaterial, Stars, Float, PerspectiveCa
 import * as THREE from 'three'
 import './App.css'
 import { detectCriticalSymptoms, isEmergency, isUrgent, getEmergencyAdvice } from './utils/criticalSymptomDetector'
+import enT from './locales/en/translations'
+import hiT from './locales/hi/translations'
 
 const groq = new Groq({
   apiKey: import.meta.env.VITE_GROQ_API_KEY,
@@ -69,6 +72,36 @@ After gathering information, provide:
 - **Important**: Remind them to consult a healthcare professional for proper diagnosis and treatment.
 
 Your goal is to conduct a thorough diagnostic interview and provide an informed assessment of possible conditions while ensuring critical symptoms are immediately identified.`
+
+const SYSTEM_PROMPT_HI = `आप एक पेशेवर मेडिकल AI सहायक हैं जो एक व्यवस्थित प्रश्न-आधारित दृष्टिकोण के माध्यम से स्वास्थ्य स्थितियों का निदान करने के लिए डिज़ाइन किए गए हैं।
+
+आपकी भूमिका है:
+- रोगी के लक्षणों के बारे में जानकारी एकत्र करने के लिए एक बार में एक विशिष्ट, प्रासंगिक प्रश्न पूछना।
+- अनुक्रमिक पूछताछ के माध्यम से पूरी तस्वीर बनाना (स्थान, अवधि, गंभीरता, संबंधित लक्षण, ट्रिगर आदि)।
+- चिकित्सा ज्ञान और पैटर्न पहचान का उपयोग करके एकत्रित जानकारी का तार्किक विश्लेषण करना।
+- **महत्वपूर्ण: जीवन के लिए खतरनाक लक्षणों को तुरंत पहचानें और अपने उत्तर में स्पष्ट रूप से बताएं।**
+- पर्याप्त जानकारी एकत्र करने के बाद, लक्षणों के आधार पर संभावित स्थितियों या बीमारियों की सूची प्रदान करें।
+- पूरे परामर्श में शांत, सहानुभूतिपूर्ण और पेशेवर स्वर बनाए रखें।
+
+आपके लिए अनिवार्य दिशानिर्देश:
+1. जब तक पर्याप्त जानकारी न हो, हमेशा एक उत्तर में केवल एक प्रश्न पूछें।
+2. **आपातकालीन पहचान: यदि रोगी हृदयाघात, स्ट्रोक, गंभीर सीने में दर्द, सांस लेने में कठिनाई, गंभीर रक्तस्राव, चेतना खोने आदि के लक्षण बताए, तो तुरंत इन विशेष स्थितियों का उल्लेख करें।**
+3. 5-7 प्रश्नों के बाद (या पर्याप्त जानकारी होने पर) अपना मूल्यांकन दें।
+4. अपने अंतिम मूल्यांकन में संभावित स्थितियों को संभावना के क्रम में सूचीबद्ध करें।
+5. व्यावहारिक कदम, सावधानियां या उपचार सलाह न दें।
+6. सरल, रोगी-अनुकूल भाषा का उपयोग करें।
+7. हमेशा याद दिलाएं कि यह केवल सूचनात्मक है और उचित निदान के लिए स्वास्थ्य पेशेवर से परामर्श करें।
+8. **सभी उत्तर हिंदी में दें।**
+
+अंतिम मूल्यांकन प्रारूप:
+- **मूल्यांकन सारांश (Assessment Summary)**: रिपोर्ट किए गए लक्षणों का संक्षिप्त विवरण
+- **संभावित स्थितियाँ (Possible Conditions)** (संभावना के क्रम में):
+  1. [स्थिति का नाम] - संक्षिप्त व्याख्या
+  2. [स्थिति का नाम] - संक्षिप्त व्याख्या
+  3. [स्थिति का नाम] - संक्षिप्त व्याख्या
+- **महत्वपूर्ण**: उचित निदान और उपचार के लिए स्वास्थ्य पेशेवर से परामर्श करने की याद दिलाएं।
+
+आपका लक्ष्य एक संपूर्ण नैदानिक साक्षात्कार करना और संभावित स्थितियों का सूचित मूल्यांकन प्रदान करना है।`
 
 // 3D Background Components
 function AnimatedSphere({ position, color, speed = 1 }) {
@@ -283,6 +316,8 @@ function Scene3D() {
 function App() {
   const navigate = useNavigate()
   const { user, token, logout } = useAuth()
+  const { language, toggleLanguage } = useLanguage()
+  const t = language === 'hi' ? hiT : enT
   
   // Authentication states
   const [showAuth, setShowAuth] = useState(false)
@@ -291,13 +326,24 @@ function App() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Hello! I\'m here to help identify possible health conditions based on your symptoms. I\'ll ask you a few questions to better understand what you\'re experiencing. Let\'s start: **What is your main symptom or concern today?**'
+      content: enT.initialMessage
     }
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+
+  // When language changes, if only the initial welcome message exists, update it
+  useEffect(() => {
+    setMessages(prev => {
+      if (prev.length === 1 && prev[0].role === 'assistant') {
+        const translations = language === 'hi' ? hiT : enT
+        return [{ role: 'assistant', content: translations.initialMessage }]
+      }
+      return prev
+    })
+  }, [language])
   
   // Dashboard integration states
   const [showDashboard, setShowDashboard] = useState(false)
@@ -783,9 +829,10 @@ function App() {
     }
 
     try {
-      // Build messages for Groq API with system prompt
+      // Build messages for Groq API with system prompt (language-aware)
+      const activeSystemPrompt = language === 'hi' ? SYSTEM_PROMPT_HI : SYSTEM_PROMPT
       const chatMessages = [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: activeSystemPrompt },
         ...messages.map(msg => ({
           role: msg.role,
           content: msg.content
@@ -861,13 +908,13 @@ function App() {
     } catch (error) {
       console.error('Error:', error)
       
-      let errorMessage = 'Sorry, I encountered an error. Please try again.'
+      let errorMessage = t.errorGeneral
       
       // Check for rate limit or overload errors
       if (error.message?.includes('overloaded') || error.message?.includes('503')) {
-        errorMessage = '⚠️ The AI model is currently overloaded. Please wait a minute and try again. (Free tier has limited requests per minute)'
+        errorMessage = t.errorOverloaded
       } else if (error.message?.includes('429') || error.message?.includes('quota')) {
-        errorMessage = '⚠️ Rate limit reached. You can only make 5 requests per minute and 20 per day on the free tier. Please wait before trying again.'
+        errorMessage = t.errorRateLimit
       }
       
       setMessages(prev => [...prev, {
@@ -900,20 +947,20 @@ function App() {
       <div className="chat-container">
         <div className="chat-header">
           <div className="header-top">
-            <h1>Medical AI Assistant</h1>
+            <h1>{t.appTitle}</h1>
             <div className="header-controls">
               {user ? (
                 <>
                   <button 
                     onClick={toggleDashboard}
                     className={`dashboard-toggle ${showDashboard ? 'active' : ''}`}
-                    title="View Medical History"
+                    title={t.historyTitle}
                   >
-                    📊 {showDashboard ? 'Hide' : 'History'}
+                    📊 {showDashboard ? t.hideBtn : t.historyBtn}
                   </button>
                   <div className="user-info">
-                    <span>Welcome, {user.name}</span>
-                    <button onClick={logout} className="logout-btn">Logout</button>
+                    <span>{t.welcomeUser} {user.name}</span>
+                    <button onClick={logout} className="logout-btn">{t.logout}</button>
                   </div>
                 </>
               ) : (
@@ -922,20 +969,27 @@ function App() {
                     onClick={() => { setShowAuth(true); setIsLogin(true); }}
                     className="auth-btn login-btn-small"
                   >
-                    Login
+                    {t.login}
                   </button>
                   <button 
                     onClick={() => { setShowAuth(true); setIsLogin(false); }}
                     className="auth-btn signup-btn-small"
                   >
-                    Sign Up
+                    {t.signUp}
                   </button>
                 </div>
               )}
+              <button
+                onClick={toggleLanguage}
+                className="lang-toggle"
+                title={language === 'en' ? 'Switch to Hindi' : 'Switch to English'}
+              >
+                {language === 'en' ? '🇮🇳 हिं' : '🇬🇧 EN'}
+              </button>
             </div>
           </div>
           <p style={{ fontSize: '0.85rem', opacity: 0.9, margin: '0.5rem 0 0 0' }}>
-            For informational purposes only. Not a substitute for professional medical advice.
+            {t.disclaimer}
           </p>
         </div>
         
@@ -968,8 +1022,8 @@ function App() {
               <div className="dashboard-title">
                 <div className="title-icon">📊</div>
                 <div className="title-text">
-                  <h2>Medical History Dashboard</h2>
-                  <p>Track your health consultations and insights</p>
+                  <h2>{t.dashboardTitle}</h2>
+                  <p>{t.dashboardSubtitle}</p>
                 </div>
               </div>
               <div className="dashboard-actions">
@@ -986,6 +1040,12 @@ function App() {
               </div>
             ) : (
               <>
+                {dashboardLoading && (
+                  <div className="dashboard-loading-inline">
+                    <div className="loading-spinner-small"></div>
+                    <p>{t.loadingHistory}</p>
+                  </div>
+                )}
                 {/* Statistics Cards */}
                 {dashboardStats && (
                   <div className="stats-grid-inline">
@@ -996,8 +1056,8 @@ function App() {
                       </div>
                       <div className="stat-content">
                         <h3>{dashboardStats.totalSessions}</h3>
-                        <p>Medical Sessions</p>
-                        <span className="stat-subtitle">Total consultations</span>
+                        <p>{t.medicalSessions}</p>
+                        <span className="stat-subtitle">{t.totalConsultations}</span>
                       </div>
                     </div>
                     
@@ -1008,8 +1068,8 @@ function App() {
                       </div>
                       <div className="stat-content">
                         <h3>{dashboardStats.totalMessages}</h3>
-                        <p>Messages Exchanged</p>
-                        <span className="stat-subtitle">AI interactions</span>
+                        <p>{t.messagesExchanged}</p>
+                        <span className="stat-subtitle">{t.aiInteractions}</span>
                       </div>
                     </div>
                     
@@ -1020,8 +1080,8 @@ function App() {
                       </div>
                       <div className="stat-content">
                         <h3>{dashboardStats.emergencySessions}</h3>
-                        <p>Emergency Cases</p>
-                        <span className="stat-subtitle">{dashboardStats.emergencySessions > 0 ? 'Urgent detection' : 'All clear'}</span>
+                        <p>{t.emergencyCases}</p>
+                        <span className="stat-subtitle">{dashboardStats.emergencySessions > 0 ? t.urgentDetection : t.allClear}</span>
                       </div>
                     </div>
                     
@@ -1032,8 +1092,8 @@ function App() {
                       </div>
                       <div className="stat-content">
                         <h3>{dashboardStats.hospitalSearches}</h3>
-                        <p>Hospital Searches</p>
-                        <span className="stat-subtitle">Location queries</span>
+                        <p>{t.hospitalSearches}</p>
+                        <span className="stat-subtitle">{t.locationQueries}</span>
                       </div>
                     </div>
                   </div>
@@ -1042,8 +1102,8 @@ function App() {
                 {/* Recent Sessions */}
                 <div className="recent-sessions-inline">
                   <div className="sessions-header">
-                    <h3>🔬 Recent Medical Consultations</h3>
-                    <span className="sessions-count">{recentSessions.length} sessions</span>
+                    <h3>{t.recentConsultations}</h3>
+                    <span className="sessions-count">{recentSessions.length} {t.sessions}</span>
                   </div>
                   {recentSessions.length > 0 ? (
                     <div className="sessions-list-inline">
@@ -1052,10 +1112,10 @@ function App() {
                         const userContent = session.messages?.find(m => m.sender === 'user')?.content;
                         const symptoms = session.reportedSymptoms?.length > 0
                           ? session.reportedSymptoms.join(', ')
-                          : userContent ? userContent.substring(0, 60) + '...' : 'Medical consultation';
+                          : userContent ? userContent.substring(0, 60) + '...' : t.medicalConsultation;
                         const aiContent = session.messages?.find(m => m.sender === 'ai' && isDiagnosisComplete(m.content))?.content;
                         const diagnosis = session.finalDiagnosis || session.aiConclusion ||
-                          (aiContent ? aiContent.substring(0, 100) + '...' : 'Assessment in progress');
+                          (aiContent ? aiContent.substring(0, 100) + '...' : t.assessmentInProgress);
                         
                         return (
                           <div key={session._id} className="session-item-inline" onClick={() => openChatSession(session.sessionId)}>
@@ -1066,14 +1126,14 @@ function App() {
                             <div className="session-main">
                               <div className="session-header-inline">
                                 <div className="session-title-group">
-                                  <h4>{session.title || 'Medical Consultation'}</h4>
+                                  <h4>{session.title || t.medicalConsultation}</h4>
                                   {session.emergencyLevel && (
                                     <span className={`emergency-badge ${session.emergencyLevel}`}>
                                       🚨 {session.emergencyLevel.toUpperCase()}
                                     </span>
                                   )}
                                     {index === 0 && (
-                                      <span className="latest-badge">Latest</span>
+                                      <span className="latest-badge">{language === 'hi' ? 'नवीनतम' : 'Latest'}</span>
                                     )}
                                   </div>
                                   <div className="session-meta">
@@ -1081,7 +1141,7 @@ function App() {
                                       {timeAgo(session.createdAt)}
                                     </span>
                                     {session.migratedFromGuest && (
-                                      <span className="migrated-badge" title="Migrated from guest session">📱 Migrated</span>
+                                      <span className="migrated-badge" title={language === 'hi' ? 'अतिथि सत्र से स्थानांतरित' : 'Migrated from guest session'}>{t.migrated}</span>
                                     )}
                                   </div>
                                   <div className="medical-content">
@@ -1091,7 +1151,7 @@ function App() {
                                 <div className="medical-row diagnosis">
                                   <div className="medical-label">
                                     <span className="medical-icon">🔬</span>
-                                    <strong>AI Assessment</strong>
+                                    <strong>{t.aiAssessment}</strong>
                                   </div>
                                   <div className="medical-content">
                                     {diagnosis.length > 120 ? diagnosis.substring(0, 120) + '...' : diagnosis}
@@ -1101,7 +1161,7 @@ function App() {
                               <div className="session-stats-inline">
                                 <span className="stat-item messages">
                                   <span className="stat-icon">💭</span>
-                                  {session.messageCount} messages
+                                  {session.messageCount} {t.messages}
                                 </span>
                                 <span className="stat-item duration">
                                   <span className="stat-icon">⏱️</span>
@@ -1110,12 +1170,12 @@ function App() {
                                 {session.hospitalSearched && (
                                   <span className="stat-item hospital">
                                     <span className="stat-icon">🏥</span>
-                                    Hospital searched
+                                    {t.hospitalSearched}
                                   </span>
                                 )}
                                 <span className="stat-item view-chat">
                                   <span className="stat-icon">💬</span>
-                                  View Chat →
+                                  {t.viewChat}
                                 </span>
                               </div>
                             </div>
@@ -1127,20 +1187,20 @@ function App() {
                     <div className="no-sessions-inline">
                       <div className="no-sessions-icon">🩺</div>
                       <div className="no-sessions-content">
-                        <h4>No medical consultations yet</h4>
-                        <p>Start your first conversation below to begin tracking your health journey!</p>
+                        <h4>{t.noConsultations}</h4>
+                        <p>{t.noConsultationsDesc}</p>
                         <div className="features-preview">
                           <div className="feature-item">
                             <span className="feature-icon">🔍</span>
-                            <span>Symptom analysis & tracking</span>
+                            <span>{t.symptomAnalysis}</span>
                           </div>
                           <div className="feature-item">
                             <span className="feature-icon">📊</span>
-                            <span>Medical history dashboard</span>
+                            <span>{t.medicalHistoryDash}</span>
                           </div>
                           <div className="feature-item">
                             <span className="feature-icon">🏥</span>
-                            <span>Emergency detection & hospital finder</span>
+                            <span>{t.emergencyDetection}</span>
                           </div>
                         </div>
                       </div>
@@ -1160,7 +1220,7 @@ function App() {
               <div className="chat-viewer-header">
                 <div className="chat-viewer-title">
                   <span>💬</span>
-                  <h3>{selectedChatSession.title || 'Medical Consultation'}</h3>
+                  <h3>{selectedChatSession.title || t.medicalConsultation}</h3>
                   {selectedChatSession.createdAt && (
                     <span className="chat-viewer-date">{new Date(selectedChatSession.createdAt).toLocaleString()}</span>
                   )}
@@ -1171,13 +1231,13 @@ function App() {
                 {chatSessionLoading || selectedChatSession.loading ? (
                   <div className="chat-viewer-loading">
                     <div className="loading-spinner-small"></div>
-                    <p>Loading conversation...</p>
+                    <p>{t.loadingConversation}</p>
                   </div>
                 ) : selectedChatSession.messages?.length > 0 ? (
                   selectedChatSession.messages.map((msg, i) => (
                     <div key={i} className={`chat-viewer-msg ${msg.sender}`}>
                       <div className="chat-viewer-msg-label">
-                        {msg.sender === 'user' ? '🧑 You' : '🤖 AI Assistant'}
+                        {msg.sender === 'user' ? t.youLabel : t.aiLabel}
                       </div>
                       <div className="chat-viewer-msg-content">
                         {msg.sender === 'ai' ? (
@@ -1187,7 +1247,7 @@ function App() {
                     </div>
                   ))
                 ) : (
-                  <div className="chat-viewer-empty">No messages found for this session.</div>
+                  <div className="chat-viewer-empty">{t.noMessages}</div>
                 )}
               </div>
             </div>
@@ -1209,11 +1269,11 @@ function App() {
                   </div>
                   <div className="emergency-buttons">
                     <button onClick={navigateToHospitals} className="emergency-hospitals-btn">
-                      🚑 Find Nearest Emergency Hospital NOW
+                      {t.findHospitalsNow}
                     </button>
                     {severity === 'EMERGENCY' && (
-                      <a href="tel:911" className="call-911-btn">
-                        📞 Call 911
+                      <a href="tel:112" className="call-911-btn">
+                        {t.call911}
                       </a>
                     )}
                   </div>
@@ -1226,7 +1286,7 @@ function App() {
               return (
                 <div key={index} className="hospital-finder-prompt">
                   <button onClick={navigateToHospitals} className="find-hospitals-btn">
-                    🏥 Find Nearby Hospitals
+                    {t.findNearbyHospitals}
                   </button>
                 </div>
               )
@@ -1265,7 +1325,7 @@ function App() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Describe your symptoms..."
+            placeholder={t.inputPlaceholder}
             disabled={isLoading}
             className="chat-input"
             autoFocus
@@ -1277,7 +1337,7 @@ function App() {
             disabled={isLoading || !input.trim()}
             className="send-button"
           >
-            Send
+            {t.sendBtn}
           </button>
         </form>
       </div>
