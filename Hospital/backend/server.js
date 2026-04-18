@@ -17,7 +17,7 @@ const app = express();
 
 const allowedOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
 const corsOptions = {
@@ -28,7 +28,7 @@ const corsOptions = {
     // If no CORS_ORIGIN is set, allow all (development-friendly default)
     if (allowedOrigins.length === 0) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (allowedOrigins.includes(origin.replace(/\/+$/, ""))) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true
@@ -92,3 +92,4 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   console.log(`📍 API available at port ${PORT}`);
 });
+
