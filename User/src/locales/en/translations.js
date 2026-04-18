@@ -12,6 +12,10 @@ const en = {
 
   // Lang toggle
   langToggle: 'हिं',
+  langSelectLabel: 'Language',
+  langEnglish: 'English',
+  langHindi: 'Hindi',
+  langGujarati: 'Gujarati',
 
   // Chat input
   inputPlaceholder: 'Describe your symptoms...',
@@ -43,6 +47,8 @@ const en = {
   hospitalSearched: 'Hospital searched',
   viewChat: 'View Chat →',
   migrated: '📱 Migrated',
+  latestBadge: 'Latest',
+  migratedFromGuest: 'Migrated from guest session',
 
   // Empty states
   noConsultations: 'No medical consultations yet',

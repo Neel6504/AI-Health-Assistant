@@ -12,6 +12,10 @@ const hi = {
 
   // Lang toggle
   langToggle: 'EN',
+  langSelectLabel: 'भाषा',
+  langEnglish: 'English',
+  langHindi: 'हिंदी',
+  langGujarati: 'ગુજરાતી',
 
   // Chat input
   inputPlaceholder: 'अपने लक्षण बताएं...',
@@ -43,6 +47,8 @@ const hi = {
   hospitalSearched: 'अस्पताल खोजा गया',
   viewChat: 'चैट देखें →',
   migrated: '📱 स्थानांतरित',
+  latestBadge: 'नवीनतम',
+  migratedFromGuest: 'अतिथि सत्र से स्थानांतरित',
 
   // Empty states
   noConsultations: 'अभी तक कोई चिकित्सा परामर्श नहीं',

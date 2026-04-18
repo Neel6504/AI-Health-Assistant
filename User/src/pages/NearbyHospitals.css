@@ -132,6 +132,34 @@
   height: 20px;
 }
 
+.language-select {
+  padding: 0.75rem 0.85rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-width: 145px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.language-select:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.language-select:focus {
+  outline: none;
+  border-color: rgba(3, 102, 214, 0.8);
+  box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.25);
+}
+
+.language-select option {
+  color: #111827;
+}
+
 /* Error Banner */
 .error-banner {
   display: flex;

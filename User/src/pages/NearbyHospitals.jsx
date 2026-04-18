@@ -8,13 +8,20 @@ import Loader from '../components/Loader'
 import { getUserLocation, findHospitalsFromDatabase, getAllHospitalsWithLocation } from '../services/locationService'
 import enT from '../locales/en/translations'
 import hiT from '../locales/hi/translations'
+import guT from '../locales/gu/translations'
 import './NearbyHospitals.css'
+
+const TRANSLATIONS_BY_LANGUAGE = {
+  en: enT,
+  hi: hiT,
+  gu: guT
+}
 
 function NearbyHospitals() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const { language, toggleLanguage } = useLanguage()
-  const t = language === 'hi' ? hiT : enT
+  const { language, setLanguage } = useLanguage()
+  const t = TRANSLATIONS_BY_LANGUAGE[language] || enT
   const [isLoading, setIsLoading] = useState(true)
   const [hospitals, setHospitals] = useState([])
   const [allHospitals, setAllHospitals] = useState([])
@@ -268,13 +275,17 @@ function NearbyHospitals() {
             </svg>
             {t.nhGoogleMaps}
           </button>
-          <button
-            onClick={toggleLanguage}
-            className="lang-toggle"
-            title={language === 'en' ? 'Switch to Hindi' : 'Switch to English'}
+          <select
+            className="language-select"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            aria-label={t.langSelectLabel || 'Select language'}
+            title={t.langSelectLabel || 'Select language'}
           >
-            {language === 'en' ? '🇮🇳 हिं' : '🇬🇧 EN'}
-          </button>
+            <option value="en">EN - {t.langEnglish || 'English'}</option>
+            <option value="hi">HI - {t.langHindi || 'Hindi'}</option>
+            <option value="gu">GU - {t.langGujarati || 'Gujarati'}</option>
+          </select>
         </div>
       </header>
 

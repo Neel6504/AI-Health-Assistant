@@ -13,6 +13,7 @@ import './App.css'
 import { detectCriticalSymptoms, isEmergency, isUrgent, getEmergencyAdvice } from './utils/criticalSymptomDetector'
 import enT from './locales/en/translations'
 import hiT from './locales/hi/translations'
+import guT from './locales/gu/translations'
 
 const groq = new Groq({
   apiKey: import.meta.env.VITE_GROQ_API_KEY,
@@ -102,6 +103,20 @@ const SYSTEM_PROMPT_HI = `आप एक पेशेवर मेडिकल AI
 - **महत्वपूर्ण**: उचित निदान और उपचार के लिए स्वास्थ्य पेशेवर से परामर्श करने की याद दिलाएं।
 
 आपका लक्ष्य एक संपूर्ण नैदानिक साक्षात्कार करना और संभावित स्थितियों का सूचित मूल्यांकन प्रदान करना है।`
+
+const SYSTEM_PROMPT_GU = `${SYSTEM_PROMPT}\n\nIMPORTANT: Provide all responses in Gujarati language (ગુજરાતી).`
+
+const TRANSLATIONS_BY_LANGUAGE = {
+  en: enT,
+  hi: hiT,
+  gu: guT
+}
+
+const SYSTEM_PROMPT_BY_LANGUAGE = {
+  en: SYSTEM_PROMPT,
+  hi: SYSTEM_PROMPT_HI,
+  gu: SYSTEM_PROMPT_GU
+}
 
 // 3D Background Components
 function AnimatedSphere({ position, color, speed = 1 }) {
@@ -316,8 +331,8 @@ function Scene3D() {
 function App() {
   const navigate = useNavigate()
   const { user, token, logout } = useAuth()
-  const { language, toggleLanguage } = useLanguage()
-  const t = language === 'hi' ? hiT : enT
+  const { language, setLanguage } = useLanguage()
+  const t = TRANSLATIONS_BY_LANGUAGE[language] || enT
   
   // Authentication states
   const [showAuth, setShowAuth] = useState(false)
@@ -338,7 +353,7 @@ function App() {
   useEffect(() => {
     setMessages(prev => {
       if (prev.length === 1 && prev[0].role === 'assistant') {
-        const translations = language === 'hi' ? hiT : enT
+        const translations = TRANSLATIONS_BY_LANGUAGE[language] || enT
         return [{ role: 'assistant', content: translations.initialMessage }]
       }
       return prev
@@ -638,8 +653,8 @@ function App() {
   // Requires BOTH the Assessment Summary section AND a numbered Possible Conditions list,
   // matching the final assessment format defined in SYSTEM_PROMPT.
   const isDiagnosisComplete = (content) => {
-    const hasAssessmentSummary = /assessment summary|summary of symptoms|symptom summary|मूल्यांकन सारांश/i.test(content)
-    const hasPossibleConditions = /possible conditions|conditions to consider|likely conditions|potential conditions|संभावित स्थितियाँ|संभावित रोग/i.test(content)
+    const hasAssessmentSummary = /assessment summary|summary of symptoms|symptom summary|मूल्यांकन सारांश|અસેસમેન્ટ સારાંશ|લક્ષણોનો સારાંશ|સારાંશ/i.test(content)
+    const hasPossibleConditions = /possible conditions|conditions to consider|likely conditions|potential conditions|संभावित स्थितियाँ|संभावित रोग|સંભવિત સ્થિતિઓ|સંભવિત કારણો|સંબંધિત કારણો/i.test(content)
     const hasNumberedConditions = /^\s*\d+\.\s+\S/m.test(content)
     return hasNumberedConditions && (hasAssessmentSummary || hasPossibleConditions)
   }
@@ -830,7 +845,7 @@ function App() {
 
     try {
       // Build messages for Groq API with system prompt (language-aware)
-      const activeSystemPrompt = language === 'hi' ? SYSTEM_PROMPT_HI : SYSTEM_PROMPT
+      const activeSystemPrompt = SYSTEM_PROMPT_BY_LANGUAGE[language] || SYSTEM_PROMPT
       const chatMessages = [
         { role: 'system', content: activeSystemPrompt },
         ...messages.map(msg => ({
@@ -985,13 +1000,19 @@ function App() {
                   </button>
                 </div>
               )}
-              <button
-                onClick={toggleLanguage}
-                className="lang-toggle"
-                title={language === 'en' ? 'Switch to Hindi' : 'Switch to English'}
-              >
-                {language === 'en' ? '🇮🇳 हिं' : '🇬🇧 EN'}
-              </button>
+              <div className="language-control">
+                <select
+                  className="language-select"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  aria-label={t.langSelectLabel || 'Select language'}
+                  title={t.langSelectLabel || 'Select language'}
+                >
+                  <option value="en">EN - {t.langEnglish || 'English'}</option>
+                  <option value="hi">HI - {t.langHindi || 'Hindi'}</option>
+                  <option value="gu">GU - {t.langGujarati || 'Gujarati'}</option>
+                </select>
+              </div>
             </div>
           </div>
           <p style={{ fontSize: '0.85rem', opacity: 0.9, margin: '0.5rem 0 0 0' }}>
@@ -1138,16 +1159,16 @@ function App() {
                                       🚨 {session.emergencyLevel.toUpperCase()}
                                     </span>
                                   )}
-                                    {index === 0 && (
-                                      <span className="latest-badge">{language === 'hi' ? 'नवीनतम' : 'Latest'}</span>
-                                    )}
+                                  {index === 0 && (
+                                    <span className="latest-badge">{t.latestBadge || 'Latest'}</span>
+                                  )}
                                   </div>
                                   <div className="session-meta">
                                     <span className="session-date" title={new Date(session.createdAt).toLocaleString()}>
                                       {timeAgo(session.createdAt)}
                                     </span>
                                     {session.migratedFromGuest && (
-                                      <span className="migrated-badge" title={language === 'hi' ? 'अतिथि सत्र से स्थानांतरित' : 'Migrated from guest session'}>{t.migrated}</span>
+                                      <span className="migrated-badge" title={t.migratedFromGuest || 'Migrated from guest session'}>{t.migrated}</span>
                                     )}
                                   </div>
                                   <div className="medical-content">
