@@ -3,6 +3,8 @@ import './Auth.css'
 import MEDICAL_SERVICES from '../constants/medicalServices'
 import { getCurrentLocation } from '../services/locationService'
 
+const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
 function Signup({ onToggleAuth, onSignupSuccess }) {
   const [currentSection, setCurrentSection] = useState('hospital-info')
   const [completedSections, setCompletedSections] = useState([])
@@ -23,6 +25,11 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
     specializations: '',
     emergencyAvailable: false,
     ambulanceAvailable: false,
+    openDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    operatingHours: {
+      openingTime: '09:00',
+      closingTime: '18:00'
+    },
     availableServices: [],
     adminName: '',
     adminPosition: '',
@@ -42,6 +49,30 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
     { id: 'security', label: 'Account Security', icon: '🔐', shortLabel: 'Security' }
   ]
 
+  const fieldSectionMap = {
+    hospitalName: 'hospital-info',
+    registrationNumber: 'hospital-info',
+    establishedYear: 'hospital-info',
+    email: 'contact',
+    phone: 'contact',
+    address: 'contact',
+    city: 'contact',
+    state: 'contact',
+    pincode: 'contact',
+    latitude: 'contact',
+    longitude: 'contact',
+    hospitalType: 'hospital-details',
+    totalBeds: 'hospital-details',
+    specializations: 'hospital-details',
+    openDays: 'hospital-details',
+    operatingHours: 'hospital-details',
+    availableServices: 'medical-services',
+    adminName: 'admin',
+    adminPosition: 'admin',
+    password: 'security',
+    confirmPassword: 'security'
+  }
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setFormData(prev => ({
@@ -53,6 +84,12 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
       setErrors(prev => ({
         ...prev,
         [name]: ''
+      }))
+    }
+    if (errors.general) {
+      setErrors(prev => ({
+        ...prev,
+        general: ''
       }))
     }
   }
@@ -67,6 +104,33 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
     // Clear error if services selected
     if (errors.availableServices) {
       setErrors(prev => ({ ...prev, availableServices: '' }))
+    }
+  }
+
+  const handleOpenDayToggle = (day) => {
+    setFormData(prev => {
+      const nextDays = prev.openDays.includes(day)
+        ? prev.openDays.filter(d => d !== day)
+        : [...prev.openDays, day]
+      return { ...prev, openDays: nextDays }
+    })
+
+    if (errors.openDays) {
+      setErrors(prev => ({ ...prev, openDays: '' }))
+    }
+  }
+
+  const handleOperatingHoursChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      operatingHours: {
+        ...prev.operatingHours,
+        [field]: value
+      }
+    }))
+
+    if (errors.operatingHours) {
+      setErrors(prev => ({ ...prev, operatingHours: '' }))
     }
   }
 
@@ -155,6 +219,14 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
     if (!formData.hospitalType) newErrors.hospitalType = 'Hospital type is required'
     if (!formData.totalBeds) newErrors.totalBeds = 'Total beds is required'
     if (!formData.specializations.trim()) newErrors.specializations = 'Specializations are required'
+    if (!Array.isArray(formData.openDays) || formData.openDays.length === 0) {
+      newErrors.openDays = 'Please select at least one open day'
+    }
+    if (!formData.operatingHours.openingTime || !formData.operatingHours.closingTime) {
+      newErrors.operatingHours = 'Opening and closing times are required'
+    } else if (formData.operatingHours.openingTime >= formData.operatingHours.closingTime) {
+      newErrors.operatingHours = 'Opening time must be earlier than closing time'
+    }
     if (!formData.availableServices || formData.availableServices.length === 0) {
       newErrors.availableServices = 'Please select at least one available service'
     }
@@ -171,14 +243,28 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
       newErrors.confirmPassword = 'Passwords do not match'
     }
 
+    if (Object.keys(newErrors).length > 0) {
+      newErrors.general = 'Please complete all required fields before registration.'
+    }
+
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return newErrors
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (!validateForm()) return
+    const validationErrors = validateForm()
+    if (Object.keys(validationErrors).length > 0) {
+      const firstErrorField = Object.keys(validationErrors).find(
+        (field) => field !== 'general' && validationErrors[field]
+      )
+
+      if (firstErrorField && fieldSectionMap[firstErrorField]) {
+        setCurrentSection(fieldSectionMap[firstErrorField])
+      }
+      return
+    }
 
     setIsLoading(true)
     
@@ -513,6 +599,45 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
                 <span>Ambulance Service Available</span>
               </label>
             </div>
+
+            <div className="form-group">
+              <label>Open Days *</label>
+              <div className="service-checkboxes">
+                {WEEK_DAYS.map(day => (
+                  <label key={day} className="service-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={formData.openDays.includes(day)}
+                      onChange={() => handleOpenDayToggle(day)}
+                    />
+                    <span className="service-name">{day}</span>
+                  </label>
+                ))}
+              </div>
+              {errors.openDays && <span className="error-message">{errors.openDays}</span>}
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="openingTime">Opening Time *</label>
+                <input
+                  type="time"
+                  id="openingTime"
+                  value={formData.operatingHours.openingTime}
+                  onChange={(e) => handleOperatingHoursChange('openingTime', e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="closingTime">Closing Time *</label>
+                <input
+                  type="time"
+                  id="closingTime"
+                  value={formData.operatingHours.closingTime}
+                  onChange={(e) => handleOperatingHoursChange('closingTime', e.target.value)}
+                />
+              </div>
+            </div>
+            {errors.operatingHours && <span className="error-message">{errors.operatingHours}</span>}
           </div>
         )
 
@@ -660,7 +785,34 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
   }
 
   const currentSectionIndex = sections.findIndex(s => s.id === currentSection)
+  const isFirstSection = currentSectionIndex === 0
+  const isLastSection = currentSectionIndex === sections.length - 1
   const progressPercentage = ((currentSectionIndex + 1) / sections.length) * 100
+
+  const handleNextSection = () => {
+    if (isLastSection) return
+
+    const currentSectionId = sections[currentSectionIndex]?.id
+    const nextSectionId = sections[currentSectionIndex + 1]?.id
+
+    if (currentSectionId) {
+      setCompletedSections(prev =>
+        prev.includes(currentSectionId) ? prev : [...prev, currentSectionId]
+      )
+    }
+
+    if (nextSectionId) {
+      setCurrentSection(nextSectionId)
+    }
+  }
+
+  const handlePreviousSection = () => {
+    if (isFirstSection) return
+    const previousSectionId = sections[currentSectionIndex - 1]?.id
+    if (previousSectionId) {
+      setCurrentSection(previousSectionId)
+    }
+  }
 
   return (
     <div className="auth-container">
@@ -706,7 +858,34 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
 
           {/* Main Content Area */}
           <form onSubmit={handleSubmit} className="auth-form signup-form dashboard-content">
+            {errors.general && (
+              <div className="error-banner">
+                <span>⚠️</span>
+                <span>{errors.general}</span>
+              </div>
+            )}
             {renderSection()}
+
+            <div className="section-navigation">
+              <button
+                type="button"
+                className="nav-btn prev-btn"
+                onClick={handlePreviousSection}
+                disabled={isFirstSection}
+              >
+                ← Previous
+              </button>
+
+              {!isLastSection && (
+                <button
+                  type="button"
+                  className="nav-btn next-btn"
+                  onClick={handleNextSection}
+                >
+                  Next →
+                </button>
+              )}
+            </div>
           </form>
         </div>
 

@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 const hospitalSchema = new mongoose.Schema({
   // Hospital Basic Information
   hospitalName: {
@@ -95,6 +97,31 @@ const hospitalSchema = new mongoose.Schema({
   ambulanceAvailable: {
     type: Boolean,
     default: false
+  },
+
+  // Appointment availability configuration
+  openDays: {
+    type: [String],
+    enum: WEEK_DAYS,
+    default: WEEK_DAYS,
+    validate: {
+      validator: function(days) {
+        return Array.isArray(days) && days.length > 0;
+      },
+      message: 'At least one open day is required'
+    }
+  },
+  operatingHours: {
+    openingTime: {
+      type: String,
+      default: '09:00',
+      match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Opening time must be in HH:mm format']
+    },
+    closingTime: {
+      type: String,
+      default: '18:00',
+      match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Closing time must be in HH:mm format']
+    }
   },
   
   // Available Medical Services

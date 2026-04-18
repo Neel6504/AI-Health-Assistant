@@ -1,10 +1,36 @@
 import express from 'express';
 import Appointment from '../models/Appointment.js';
 import ChatHistory from '../models/ChatHistory.js';
+import Hospital from '../models/Hospital.js';
 import { protect } from './authRoutes.js';
 import { protectHospital } from './hospitalRoutes.js';
 
 const router = express.Router();
+const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const parseTimeToMinutes = (value) => {
+  if (!value || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+
+  // 24-hour format: HH:mm
+  const hhmmMatch = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(trimmed);
+  if (hhmmMatch) {
+    return Number(hhmmMatch[1]) * 60 + Number(hhmmMatch[2]);
+  }
+
+  // 12-hour format: h:mm AM/PM
+  const ampmMatch = /^(0?[1-9]|1[0-2]):([0-5]\d)\s?(AM|PM)$/i.exec(trimmed);
+  if (ampmMatch) {
+    let hour = Number(ampmMatch[1]);
+    const minute = Number(ampmMatch[2]);
+    const period = ampmMatch[3].toUpperCase();
+    if (hour === 12) hour = 0;
+    if (period === 'PM') hour += 12;
+    return hour * 60 + minute;
+  }
+
+  return null;
+};
 
 // ──────────────────────────────────────────────────────────────────
 // HOSPITAL-FACING routes (must come BEFORE the user protect middleware)
@@ -103,6 +129,79 @@ router.post('/', async (req, res) => {
       });
     }
 
+    const hospital = await Hospital.findById(hospitalId).select('hospitalName openDays operatingHours isActive');
+    if (!hospital) {
+      return res.status(404).json({ success: false, message: 'Hospital not found' });
+    }
+    if (!hospital.isActive) {
+      return res.status(400).json({ success: false, message: 'Hospital is not accepting appointments currently' });
+    }
+
+    const requestedDate = new Date(appointmentDate);
+    if (Number.isNaN(requestedDate.getTime())) {
+      return res.status(400).json({ success: false, message: 'Invalid appointmentDate' });
+    }
+
+    const appointmentDayDate = new Date(requestedDate);
+    appointmentDayDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const maxAllowed = new Date(today);
+    maxAllowed.setDate(maxAllowed.getDate() + 2);
+
+    if (appointmentDayDate < today || appointmentDayDate > maxAllowed) {
+      return res.status(400).json({
+        success: false,
+        message: 'Appointments can only be booked for today and the next 2 days.'
+      });
+    }
+
+    const appointmentMinutes = parseTimeToMinutes(appointmentTime);
+    if (appointmentMinutes === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'appointmentTime must be in HH:mm format.'
+      });
+    }
+
+    const openDays = Array.isArray(hospital.openDays) && hospital.openDays.length > 0
+      ? hospital.openDays
+      : WEEK_DAYS;
+    const bookingDayName = WEEK_DAYS[appointmentDayDate.getDay()];
+    if (!openDays.includes(bookingDayName)) {
+      return res.status(400).json({
+        success: false,
+        message: `${hospital.hospitalName} is closed on ${bookingDayName}.`
+      });
+    }
+
+    const openingMinutes = parseTimeToMinutes(hospital.operatingHours?.openingTime || '09:00');
+    const closingMinutes = parseTimeToMinutes(hospital.operatingHours?.closingTime || '18:00');
+    if (openingMinutes === null || closingMinutes === null || openingMinutes >= closingMinutes) {
+      return res.status(400).json({
+        success: false,
+        message: 'Hospital operating hours are not configured correctly.'
+      });
+    }
+
+    if (appointmentMinutes < openingMinutes || appointmentMinutes >= closingMinutes) {
+      return res.status(400).json({
+        success: false,
+        message: `Please choose a time between ${hospital.operatingHours?.openingTime || '09:00'} and ${hospital.operatingHours?.closingTime || '18:00'}.`
+      });
+    }
+
+    const now = new Date();
+    if (appointmentDayDate.getTime() === today.getTime()) {
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      if (appointmentMinutes <= nowMinutes) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please choose a future time slot.'
+        });
+      }
+    }
+
     // Optionally pull the user's most recent chat session messages
     let chatContext = [];
     if (includeChatHistory) {
@@ -131,11 +230,11 @@ router.post('/', async (req, res) => {
     const appointment = await Appointment.create({
       userId: req.user._id,
       hospitalId,
-      hospitalName,
+      hospitalName: hospital.hospitalName || hospitalName,
       hospitalAddress: hospitalAddress || '',
       hospitalPhone: hospitalPhone || '',
       hospitalEmail: hospitalEmail || '',
-      appointmentDate: new Date(appointmentDate),
+      appointmentDate: appointmentDayDate,
       appointmentTime,
       reason: reason || '',
       chatContext,

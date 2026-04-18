@@ -638,10 +638,10 @@ function App() {
   // Requires BOTH the Assessment Summary section AND a numbered Possible Conditions list,
   // matching the final assessment format defined in SYSTEM_PROMPT.
   const isDiagnosisComplete = (content) => {
-    const hasAssessmentSummary = /assessment summary/i.test(content)
-    const hasPossibleConditions = /possible conditions/i.test(content)
+    const hasAssessmentSummary = /assessment summary|summary of symptoms|symptom summary|मूल्यांकन सारांश/i.test(content)
+    const hasPossibleConditions = /possible conditions|conditions to consider|likely conditions|potential conditions|संभावित स्थितियाँ|संभावित रोग/i.test(content)
     const hasNumberedConditions = /^\s*\d+\.\s+\S/m.test(content)
-    return hasAssessmentSummary && hasPossibleConditions && hasNumberedConditions
+    return hasNumberedConditions && (hasAssessmentSummary || hasPossibleConditions)
   }
 
   // Session Management Functions
@@ -867,13 +867,19 @@ function App() {
       const userDetection = detectCriticalSymptoms(currentInput)
       const aiDetection = detectCriticalSymptoms(assistantMessage.content)
       const criticalDetection = userDetection || aiDetection
+      const detectedSymptoms = Array.isArray(criticalDetection?.symptoms)
+        ? criticalDetection.symptoms
+        : (criticalDetection?.matchedKeyword ? [criticalDetection.matchedKeyword] : [])
+      const symptomSummary = detectedSymptoms.length > 0
+        ? detectedSymptoms.join(', ')
+        : (criticalDetection?.condition || 'critical symptom detected')
       
       // If critical symptoms detected, show emergency warning and save to session
       if (criticalDetection) {
         // Save critical symptom to session if authenticated
         if (user && token && session) {
           await saveCriticalSymptom(
-            criticalDetection.symptoms.join(', '), 
+            symptomSummary,
             criticalDetection.severity
           )
         }
@@ -881,7 +887,7 @@ function App() {
         else {
           const currentMessages = [...messages, userMessage, assistantMessage]
           const symptoms = [{
-            symptom: criticalDetection.symptoms.join(', '),
+            symptom: symptomSummary,
             emergencyLevel: criticalDetection.severity,
             timestamp: new Date().toISOString()
           }]

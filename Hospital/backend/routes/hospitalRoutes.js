@@ -4,6 +4,13 @@ import Hospital from '../models/Hospital.js';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
+const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const isValidTimeHHmm = (value) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(value);
+const timeToMinutes = (value) => {
+  const [hour, minute] = value.split(':').map(Number);
+  return hour * 60 + minute;
+};
 
 // Quick check to avoid DB operations when disconnected (e.g., bad MONGODB_URI/DNS)
 const isDbConnected = () => mongoose.connection.readyState === 1;
@@ -59,11 +66,40 @@ router.post('/register', async (req, res) => {
       specializations,
       emergencyAvailable,
       ambulanceAvailable,
+      openDays,
+      operatingHours,
       availableServices,
       adminName,
       adminPosition,
       password
     } = req.body;
+
+    const safeOpenDays = Array.isArray(openDays) && openDays.length > 0 ? openDays : WEEK_DAYS;
+    const safeOperatingHours = {
+      openingTime: operatingHours?.openingTime || '09:00',
+      closingTime: operatingHours?.closingTime || '18:00'
+    };
+
+    if (!safeOpenDays.every((day) => WEEK_DAYS.includes(day))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid openDays. Use day names like Monday, Tuesday, etc.'
+      });
+    }
+
+    if (!isValidTimeHHmm(safeOperatingHours.openingTime) || !isValidTimeHHmm(safeOperatingHours.closingTime)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Operating hours must be in HH:mm format.'
+      });
+    }
+
+    if (timeToMinutes(safeOperatingHours.openingTime) >= timeToMinutes(safeOperatingHours.closingTime)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Opening time must be earlier than closing time.'
+      });
+    }
 
     // Validate latitude and longitude
     if (!latitude || !longitude) {
@@ -120,6 +156,8 @@ router.post('/register', async (req, res) => {
       specializations,
       emergencyAvailable,
       ambulanceAvailable,
+      openDays: safeOpenDays,
+      operatingHours: safeOperatingHours,
       availableServices,
       adminName,
       adminPosition,
@@ -346,6 +384,10 @@ router.post('/nearby', async (req, res) => {
     };
 
     // Calculate distances and filter by radius
+    const now = new Date();
+    const todayName = WEEK_DAYS[now.getDay()];
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
     const hospitalsWithDistance = allHospitals
       .map(hospital => {
         const distance = calculateDistance(
@@ -354,6 +396,16 @@ router.post('/nearby', async (req, res) => {
           hospital.latitude,
           hospital.longitude
         );
+
+        const hospitalOpenDays = Array.isArray(hospital.openDays) && hospital.openDays.length > 0
+          ? hospital.openDays
+          : WEEK_DAYS;
+        const openingTime = hospital.operatingHours?.openingTime || '09:00';
+        const closingTime = hospital.operatingHours?.closingTime || '18:00';
+        const openingMinutes = isValidTimeHHmm(openingTime) ? timeToMinutes(openingTime) : 9 * 60;
+        const closingMinutes = isValidTimeHHmm(closingTime) ? timeToMinutes(closingTime) : 18 * 60;
+        const isOpenToday = hospitalOpenDays.includes(todayName);
+        const isOpenNow = isOpenToday && nowMinutes >= openingMinutes && nowMinutes < closingMinutes;
 
         return {
           _id: hospital._id,
@@ -369,11 +421,16 @@ router.post('/nearby', async (req, res) => {
           specializations: hospital.specializations,
           emergencyAvailable: hospital.emergencyAvailable,
           ambulanceAvailable: hospital.ambulanceAvailable,
+          openDays: hospitalOpenDays,
+          operatingHours: {
+            openingTime,
+            closingTime
+          },
           availableServices: hospital.availableServices,
           latitude: hospital.latitude,
           longitude: hospital.longitude,
           distance: distance,
-          isOpen: true // You can add business hours logic later
+          isOpen: isOpenNow
         };
       })
       .filter(hospital => hospital.distance <= radius)

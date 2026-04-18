@@ -317,6 +317,7 @@ export function detectCriticalSymptoms(message) {
           condition: conditionKey,
           severity: condition.severity,
           warning: condition.warning,
+          symptoms: [keyword],
           matchedKeyword: keyword
         }
       }

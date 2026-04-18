@@ -3,12 +3,31 @@ import { useAuth } from '../contexts/AuthContext'
 import './BookAppointment.css'
 
 const API_URL = 'http://localhost:3001/api/appointments'
+const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+const toMinutes = (time) => {
+  if (!time || typeof time !== 'string') return null
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time)
+  if (!match) return null
+  return Number(match[1]) * 60 + Number(match[2])
+}
+
+const toLabel = (minutes) => {
+  const hour24 = Math.floor(minutes / 60)
+  const minute = minutes % 60
+  const ampm = hour24 < 12 ? 'AM' : 'PM'
+  const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24
+  return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${ampm}`
+}
 
 function BookAppointment({ hospital, onClose, onSuccess }) {
   const { token } = useAuth()
 
   // Today's date string for the min attribute of date input
   const todayStr = new Date().toISOString().split('T')[0]
+  const maxDateObj = new Date()
+  maxDateObj.setDate(maxDateObj.getDate() + 2)
+  const maxDateStr = maxDateObj.toISOString().split('T')[0]
 
   const [form, setForm] = useState({
     appointmentDate: '',
@@ -18,6 +37,54 @@ function BookAppointment({ hospital, onClose, onSuccess }) {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const openDays = Array.isArray(hospital.openDays) && hospital.openDays.length > 0
+    ? hospital.openDays
+    : WEEK_DAYS
+  const openingTime = hospital.operatingHours?.openingTime || '09:00'
+  const closingTime = hospital.operatingHours?.closingTime || '18:00'
+
+  const selectedDateObj = form.appointmentDate ? new Date(`${form.appointmentDate}T00:00:00`) : null
+  const selectedDayName = selectedDateObj ? WEEK_DAYS[selectedDateObj.getDay()] : null
+  const isOpenOnSelectedDay = selectedDayName ? openDays.includes(selectedDayName) : true
+
+  const openingMinutes = toMinutes(openingTime)
+  const closingMinutes = toMinutes(closingTime)
+
+  const timeSlots = []
+  if (openingMinutes !== null && closingMinutes !== null && openingMinutes < closingMinutes) {
+    for (let m = openingMinutes; m < closingMinutes; m += 30) {
+      const hour = Math.floor(m / 60)
+      const minute = m % 60
+      timeSlots.push({
+        value: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+        label: toLabel(m)
+      })
+    }
+  }
+
+  const filteredSlots = timeSlots.filter((slot) => {
+    if (!form.appointmentDate) return true
+    const todayLocal = new Date()
+    const selected = new Date(`${form.appointmentDate}T00:00:00`)
+    const sameDay =
+      selected.getFullYear() === todayLocal.getFullYear() &&
+      selected.getMonth() === todayLocal.getMonth() &&
+      selected.getDate() === todayLocal.getDate()
+
+    if (!sameDay) return true
+    const nowMinutes = todayLocal.getHours() * 60 + todayLocal.getMinutes()
+    const slotMinutes = toMinutes(slot.value)
+    return slotMinutes !== null && slotMinutes > nowMinutes
+  })
+
+  useEffect(() => {
+    if (!form.appointmentTime) return
+    const stillAvailable = filteredSlots.some((slot) => slot.value === form.appointmentTime)
+    if (!stillAvailable) {
+      setForm((prev) => ({ ...prev, appointmentTime: '' }))
+    }
+  }, [form.appointmentDate])
 
   // Close on ESC
   useEffect(() => {
@@ -42,6 +109,22 @@ function BookAppointment({ hospital, onClose, onSuccess }) {
     if (!form.appointmentDate || !form.appointmentTime) {
       setError('Please select both a date and time.')
       return
+    }
+
+    if (!isOpenOnSelectedDay) {
+      setError(`This hospital is closed on ${selectedDayName}. Please choose another day.`)
+      return
+    }
+
+    if (selectedDateObj) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const maxAllowed = new Date(today)
+      maxAllowed.setDate(maxAllowed.getDate() + 2)
+      if (selectedDateObj < today || selectedDateObj > maxAllowed) {
+        setError('Appointments are allowed only for today and the next 2 days.')
+        return
+      }
     }
 
     // Validate date is not in the past
@@ -86,19 +169,6 @@ function BookAppointment({ hospital, onClose, onSuccess }) {
     }
   }
 
-  // Generate time slot options every 30 minutes
-  const timeSlots = []
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const hh = String(h).padStart(2, '0')
-      const mm = String(m).padStart(2, '0')
-      const ampm = h < 12 ? 'AM' : 'PM'
-      const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-      const label = `${String(hour12).padStart(2, '0')}:${mm} ${ampm}`
-      timeSlots.push({ value: `${hh}:${mm}`, label })
-    }
-  }
-
   return (
     <div className="ba-overlay" onClick={onClose}>
       <div className="ba-modal" onClick={(e) => e.stopPropagation()}>
@@ -139,10 +209,12 @@ function BookAppointment({ hospital, onClose, onSuccess }) {
                 id="appointmentDate"
                 name="appointmentDate"
                 min={todayStr}
+                max={maxDateStr}
                 value={form.appointmentDate}
                 onChange={handleChange}
                 required
               />
+              <small className="ba-help-text">Only today and next 2 days are allowed.</small>
             </div>
             <div className="ba-field">
               <label htmlFor="appointmentTime">Appointment Time <span className="ba-required">*</span></label>
@@ -151,13 +223,19 @@ function BookAppointment({ hospital, onClose, onSuccess }) {
                 name="appointmentTime"
                 value={form.appointmentTime}
                 onChange={handleChange}
+                disabled={!form.appointmentDate || !isOpenOnSelectedDay}
                 required
               >
-                <option value="">Select a time</option>
-                {timeSlots.map((slot) => (
+                {!form.appointmentDate && <option value="">Select date first</option>}
+                {form.appointmentDate && !isOpenOnSelectedDay && <option value="">Hospital closed on {selectedDayName}</option>}
+                {form.appointmentDate && isOpenOnSelectedDay && <option value="">Select a time</option>}
+                {form.appointmentDate && isOpenOnSelectedDay && filteredSlots.map((slot) => (
                   <option key={slot.value} value={slot.value}>{slot.label}</option>
                 ))}
               </select>
+              {form.appointmentDate && isOpenOnSelectedDay && filteredSlots.length === 0 && (
+                <small className="ba-help-text">No available slots for the selected date.</small>
+              )}
             </div>
           </div>
 

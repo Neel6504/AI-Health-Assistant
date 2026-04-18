@@ -352,9 +352,13 @@ export const findHospitalsFromDatabase = async (location, radiusKm = 5) => {
       hospitalType: hospital.hospitalType,
       totalBeds: hospital.totalBeds,
       specializations: hospital.specializations,
+      openDays: hospital.openDays || [],
+      operatingHours: hospital.operatingHours || null,
       availableServices: hospital.availableServices,
       facilities: hospital.availableServices || [],
-      openingHours: null
+      openingHours: hospital.operatingHours
+        ? `${hospital.operatingHours.openingTime} - ${hospital.operatingHours.closingTime}`
+        : null
     }))
 
     console.log(`Found ${hospitals.length} hospitals from database within ${radiusKm}km`)
@@ -514,9 +518,13 @@ export const getAllHospitalsFromDatabase = async () => {
       hospitalType: hospital.hospitalType,
       totalBeds: hospital.totalBeds,
       specializations: hospital.specializations,
+      openDays: hospital.openDays || [],
+      operatingHours: hospital.operatingHours || null,
       availableServices: hospital.availableServices,
       facilities: hospital.availableServices || [],
-      openingHours: null,
+      openingHours: hospital.operatingHours
+        ? `${hospital.operatingHours.openingTime} - ${hospital.operatingHours.closingTime}`
+        : null,
       source: 'database'
     }))
 
