@@ -3,6 +3,8 @@
  * Supports Google Places API (preferred) and OpenStreetMap Overpass API (fallback)
  */
 
+import { API_BASE } from '../config/api'
+
 // Distance calculation using Haversine formula
 export const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371 // Earth's radius in kilometers
@@ -309,7 +311,7 @@ const extractFacilities = (tags) => {
  */
 export const findHospitalsFromDatabase = async (location, radiusKm = 5) => {
   try {
-    const API_URL = 'http://localhost:3001' // Hospital backend port
+    const API_URL = API_BASE
     
     const response = await fetch(`${API_URL}/api/hospitals/nearby`, {
       method: 'POST',
@@ -484,7 +486,7 @@ export const findNearbyHospitals = async (location, googleApiKey = null) => {
  */
 export const getAllHospitalsFromDatabase = async () => {
   try {
-    const API_URL = 'http://localhost:3001' // Hospital backend port
+    const API_URL = API_BASE
     
     // Fetch all hospitals from database
     const response = await fetch(`${API_URL}/api/hospitals/`)

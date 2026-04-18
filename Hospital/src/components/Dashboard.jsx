@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { API_BASE } from '../config/api'
 import './Dashboard.css'
 
-const API_BASE = 'http://localhost:3001/api'
+const API_ROOT = `${API_BASE}/api`
 
 const STATUS_COLORS = {
   pending:   { bg: '#fef3c7', text: '#92400e', border: '#fbbf24' },
@@ -30,7 +31,7 @@ function AppointmentDetail({ appt, onClose, onStatusChange }) {
     setSaving(true)
     try {
       const token = localStorage.getItem('hospitalToken')
-      const res = await fetch(`${API_BASE}/appointments/hospital/${appt._id}/status`, {
+      const res = await fetch(`${API_ROOT}/appointments/hospital/${appt._id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: newStatus })
@@ -181,7 +182,7 @@ function Dashboard({ onLogout }) {
     setError('')
     try {
       const token = localStorage.getItem('hospitalToken')
-      const res = await fetch(`${API_BASE}/appointments/hospital`, {
+      const res = await fetch(`${API_ROOT}/appointments/hospital`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()

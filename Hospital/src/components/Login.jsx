@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { HOSPITALS_API } from '../config/api'
 import './Auth.css'
 
 function Login({ onToggleAuth, onLoginSuccess }) {
@@ -49,7 +50,7 @@ function Login({ onToggleAuth, onLoginSuccess }) {
     setIsLoading(true)
     
     try {
-      const response = await fetch('http://localhost:3001/api/hospitals/login', {
+      const response = await fetch(`${HOSPITALS_API}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

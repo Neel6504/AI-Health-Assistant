@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { APPOINTMENTS_API } from '../config/api'
 import './BookAppointment.css'
 
-const API_URL = 'http://localhost:3001/api/appointments'
+const API_URL = APPOINTMENTS_API
 const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 const toMinutes = (time) => {

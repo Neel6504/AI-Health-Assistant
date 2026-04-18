@@ -10,6 +10,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Sphere, MeshDistortMaterial, Stars, Float, PerspectiveCamera } from '@react-three/drei'
 import * as THREE from 'three'
 import './App.css'
+import { CHAT_API } from './config/api'
 import { detectCriticalSymptoms, isEmergency, isUrgent, getEmergencyAdvice } from './utils/criticalSymptomDetector'
 import enT from './locales/en/translations'
 import hiT from './locales/hi/translations'
@@ -376,7 +377,7 @@ function App() {
   const GUEST_SESSION_KEY = 'ai_health_guest_session'
   
   // API Base URL
-  const API_URL = 'http://localhost:3001/api/chat'
+  const API_URL = CHAT_API
 
   // Enhanced save guest session with current conversation state
   const saveGuestSession = (messages, symptoms = []) => {

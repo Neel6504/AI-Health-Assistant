@@ -1,4 +1,5 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
+import { AUTH_API, CHAT_API } from '../config/api';
 
 const AuthContext = createContext();
 
@@ -71,8 +72,8 @@ export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   // API Base URL - adjust based on your backend port
-  const API_URL = 'http://localhost:3001/api/auth';
-  const CHAT_API_URL = 'http://localhost:3001/api/chat';
+  const API_URL = AUTH_API;
+  const CHAT_API_URL = CHAT_API;
   const GUEST_SESSION_KEY = 'ai_health_guest_session';
 
   // Migrate any guest session saved in localStorage to the DB after login

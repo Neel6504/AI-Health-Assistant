@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './Auth.css'
 import MEDICAL_SERVICES from '../constants/medicalServices'
 import { getCurrentLocation } from '../services/locationService'
+import { HOSPITALS_API } from '../config/api'
 
 const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -286,7 +287,7 @@ function Signup({ onToggleAuth, onSignupSuccess }) {
       hospitalData.latitude = lat
       hospitalData.longitude = lng
       
-      const response = await fetch('http://localhost:3001/api/hospitals/register', {
+      const response = await fetch(`${HOSPITALS_API}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { CHAT_API } from '../config/api';
 import './Dashboard.css';
 
 const timeAgo = (dateStr) => {
@@ -23,7 +24,7 @@ function Dashboard() {
   const [selectedSession, setSelectedSession] = useState(null);
 
   // API Base URL
-  const API_URL = 'http://localhost:3001/api/chat';
+  const API_URL = CHAT_API;
 
   // Redirect if not authenticated
   useEffect(() => {
