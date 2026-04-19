@@ -129,6 +129,12 @@ npm run dev
 
 Detailed deployment steps are in `DEPLOYMENT.md`.
 
+## Live URLs
+
+- User App (Vercel): https://ai-health-assistant-chi.vercel.app
+- Hospital App (Vercel): https://ai-health-assistant-hospital.vercel.app
+- Backend API (Render): https://ai-health-assistant-backend-ejmt.onrender.com
+
 ## Safety Note
 
 This system is for informational support only and does not replace professional medical diagnosis or emergency care.
