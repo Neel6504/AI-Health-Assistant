@@ -1,103 +1,135 @@
-# Online Health AI Assistant with Emergency Support
+# AI Health Assistant
 
-A modern Medical AI Assistant with stunning 3D UI and emergency hospital finder feature.
+Full-stack AI healthcare assistant with:
 
-## Features
+- User-facing AI symptom chat
+- Nearby hospital discovery
+- Hospital registration and management dashboard
+- Appointment booking workflow
+- Emergency symptom detection
+- Multi-language support (English, Hindi, Gujarati)
 
-- 🧬 **3D DNA Helix Background** - Interactive 3D visualization with adjustable opacity
-- 💎 **Glassmorphism UI** - High-end frosted glass design with smooth animations
-- 🤖 **AI-Powered Diagnosis** - Systematic symptom-based health assessment using Groq AI
-- 🏥 **Hospital Finder** - Automatic nearby hospital detection with directions
-- 🗺️ **Location Services** - Geolocation-based emergency support
-- 📱 **Responsive Design** - Works seamlessly on all devices
+## Project Structure
+
+- `User/` : Patient-facing frontend (React + Vite)
+- `Hospital/` : Hospital-facing frontend (React + Vite)
+- `Hospital/backend/` : Node.js + Express + MongoDB API
+
+## Implemented Functionality
+
+### 1. AI Medical Chat (User App)
+
+- Groq-powered medical interview flow
+- Structured assessment responses
+- Emergency pattern detection with warning prompts
+- Chat history persistence for authenticated users
+- Guest session capture and migration after login
+
+### 2. Nearby Hospitals (User App)
+
+- Geolocation-based nearby search
+- Uses registered hospitals from backend database
+- Distance sorting and open/closed status
+- Detailed hospital info card with contact and services
+- Google Maps direction handoff
+
+### 3. Hospital Authentication & Onboarding (Hospital App)
+
+- Hospital register/login
+- Multi-step registration form
+- Captures address, coordinates, services, admin info
+- Includes operating days and operating hours setup
+- Step navigation with Next/Previous controls
+
+### 4. Schedule-Aware Appointment Booking
+
+- Appointments can be booked only for today + next 2 days
+- Date/time validated in backend (not only UI)
+- Time slots shown based on selected hospital operating hours
+- Closed days block slot selection
+- Same-day past slots are filtered and rejected
+
+### 5. Hospital Dashboard
+
+- Hospital views incoming appointments
+- Filter and update appointment statuses
+- Review patient details and chat context snapshot
+
+### 6. Localization
+
+- Language selector dropdown (EN / HI / GU)
+- Gujarati support added to chat and nearby-hospital flows
+- Language-aware system prompts for AI output style
+
+### 7. Deployment Readiness
+
+- Frontends configured for Vercel (SPA rewrites)
+- Backend configured for Render
+- Environment-driven API base URLs
+- CORS configured for comma-separated frontend origins
 
 ## Tech Stack
 
-- **Frontend**: React + Vite
-- **3D Graphics**: Three.js, React Three Fiber
-- **AI**: Groq API (LLaMA 3.3 70B)
-- **Styling**: Custom CSS with glassmorphism effects
-- **Maps**: OpenStreetMap + Google Maps integration
+- Frontend: React 19 + Vite
+- Backend: Node.js + Express
+- Database: MongoDB Atlas + Mongoose
+- AI: Groq (Llama 3.3 70B)
+- 3D UI: Three.js + React Three Fiber + Drei
 
-## Setup Instructions
+## Local Development
 
-### 1. Clone the repository
+### Prerequisites
+
+- Node.js 18+
+- MongoDB Atlas URI (or local MongoDB)
+
+### 1) Install dependencies
+
 ```bash
-git clone https://github.com/Neel6504/Online-Health-AI-Assistant-with-Emergency-Support.git
-cd Online-Health-AI-Assistant-with-Emergency-Support
+cd User && npm install
+cd ../Hospital && npm install
+cd backend && npm install
 ```
 
-### 2. Install dependencies
+### 2) Configure environment variables
+
+Use the provided examples:
+
+- `User/.env.example`
+- `Hospital/.env.example`
+- `Hospital/backend/.env.example`
+
+### 3) Run apps
+
+Backend:
+
 ```bash
-cd User
-npm install
-```
-
-### 3. Configure environment variables
-Create a `.env` file in the `User` directory:
-```env
-VITE_GROQ_API_KEY=your_groq_api_key_here
-```
-
-Get your free Groq API key from: https://console.groq.com/
-
-### 4. Run the development server
-```bash
+cd Hospital/backend
 npm run dev
 ```
 
-Open http://localhost:5173 in your browser.
+User frontend:
 
-## How to Use
+```bash
+cd User
+npm run dev
+```
 
-1. **Start a Conversation**: Describe your symptoms to the AI assistant
-2. **Answer Questions**: The AI will ask follow-up questions to understand your condition
-3. **Get Assessment**: After gathering information, the AI provides possible diagnoses
-4. **Find Hospitals**: Click the "Find Nearby Hospitals" button to locate medical facilities
-5. **Get Directions**: Click on any hospital to open directions in Google Maps
+Hospital frontend:
 
-## Important Note
+```bash
+cd Hospital
+npm run dev
+```
 
-⚠️ **This tool is for informational purposes only and is NOT a substitute for professional medical advice. Always consult a healthcare professional for proper diagnosis and treatment.**
+## Deployment
 
-## Features in Detail
+- Backend: Render
+- Frontends: Vercel (two separate projects, one for `User`, one for `Hospital`)
 
-### AI Diagnosis System
-- Systematic question-based approach
-- Analyzes symptoms using medical knowledge
-- Provides ranked list of possible conditions
-- Maintains conversation context
+Detailed deployment steps are in `DEPLOYMENT.md`.
 
-### Hospital Finder
-- Automatic location detection
-- Searches within 5km radius
-- Multiple API endpoints for reliability
-- Direct Google Maps integration
-- Displays hospital name, address, and phone number
+## Safety Note
 
-### 3D Interface
-- Animated DNA helix with customizable opacity
-- Particle effects and starfield background
-- Smooth rotations and transitions
-- Optimized for performance
+This system is for informational support only and does not replace professional medical diagnosis or emergency care.
 
-## Browser Compatibility
-
-- Chrome (recommended)
-- Firefox
-- Safari
-- Edge
-
-Location services must be enabled for the hospital finder feature.
-
-## License
-
-MIT License
-
-## Developer
-
-Neel - [GitHub](https://github.com/Neel6504)
-
-## Support
-
-For issues or questions, please open an issue on GitHub.
